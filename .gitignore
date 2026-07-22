@@ -1,0 +1,23 @@
+# Harness / local config (CONTAINS the NREL API key — never commit)
+.claude/
+.DS_Store
+
+# Source paper — linked from README, not redistributed here
+WP356.pdf
+
+# Raw external downloads (regenerable: EIA-860, NLCD/DEM/PAD-US)
+data/raw/
+
+# Heavy regenerable intermediates
+# 199 per-plant mask GeoTIFFs (rebuild: src/02_build_exclusions.py)
+data/processed/exclusions/
+# ~100k-row supply-curve table (rebuild: src/04_run_rev_agg.py)
+data/processed/pjm_supply_curve.csv
+# PVWatts API response cache
+data/interim/pvwatts_cache.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

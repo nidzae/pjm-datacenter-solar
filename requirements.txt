@@ -1,0 +1,17 @@
+# PJM data-center / solar land screen — Python deps (Python 3.10/3.11).
+# Installed & verified versions in the `pjm` conda env at build time noted in comments.
+NREL-reV        # 0.14.5   (reV pipeline; PVWatts/SAM engine)
+NREL-rex        # 0.4.3    (HSDS/NSRDB resource access)
+NREL-reVX       # 0.5.4    (exclusions / supply-curve helpers)
+NREL-PySAM      # 7.0.0    (SAM PVWatts)
+geopandas       # 1.1.4
+rasterio        # 1.4.4
+shapely         # 2.1.2
+pyproj          # 3.7.2
+pandas          # 2.3.3
+numpy           # 2.4.6
+requests        # 2.34.2
+openpyxl        # 3.1.5    (EIA-860 xlsx)
+folium          # 0.20.0   (interactive map)
+matplotlib      # 3.11.1
+h5pyd           # 0.24.0   (HSDS client for NSRDB)
