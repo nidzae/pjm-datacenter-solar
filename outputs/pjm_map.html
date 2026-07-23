@@ -32,6 +32,17 @@
   #filterBox .fcount{font-size:11.5px;color:#0b6b2e;margin-top:6px;font-weight:600}
   #filterBox .fbtn{font-size:11px;color:#0b6b2e;cursor:pointer;text-decoration:underline;
     background:none;border:none;padding:0;margin-top:2px}
+  /* search */
+  #searchBox{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1200;background:#fff;
+    border:1px solid #bbb;border-radius:8px;padding:6px 8px;box-shadow:0 1px 6px rgba(0,0,0,.25);
+    font:13px -apple-system,Segoe UI,sans-serif;display:flex;align-items:center;gap:6px}
+  #searchBox input{border:1px solid #ccc;border-radius:5px;padding:5px 8px;width:230px;font-size:13px;outline:none}
+  #searchBox input:focus{border-color:#0b6b2e}
+  #searchBox button{background:#0b6b2e;color:#fff;border:none;border-radius:5px;padding:6px 11px;
+    cursor:pointer;font:600 13px inherit}
+  #searchBox button:hover{background:#095a27}
+  #searchStatus{font-size:11.5px;color:#888;max-width:150px}
+  .searchpin{background:none;border:none;font-size:22px;line-height:22px;text-align:center}
   #sidebar{position:absolute;top:0;left:0;height:100%;width:360px;max-width:88vw;z-index:1300;
     background:#fff;box-shadow:2px 0 14px rgba(0,0,0,.28);transform:translateX(-100%);
     transition:transform .28s ease;overflow-y:auto;
@@ -51,6 +62,12 @@
   .bigdot{width:18px;height:18px} .smdot{width:8px;height:8px}
 </style></head><body>
 <div id="map"></div>
+<div id="searchBox">
+  <input id="searchInput" type="text" placeholder="Search place or  lat, lon"
+    onkeydown="if(event.key==='Enter')doSearch()" autocomplete="off">
+  <button onclick="doSearch()">Search</button>
+  <span id="searchStatus"></span>
+</div>
 <button id="guideBtn" onclick="document.getElementById('sidebar').classList.add('open')">&#9432; Guide</button>
 <div id="filterBox">
   <div class="flabel">Nameplate filter (MW)</div>
@@ -71,6 +88,7 @@ capacity, with the gas plant only covering <b>5% / 10% / 20%</b> backup?</p>
 
 <h3>How to use it</h3>
 <ul>
+  <li><b>Search</b> (top) for a place name or <code>lat, lon</code> to drop a pin and zoom there.</li>
   <li><b>Click any plant</b> to draw its 10&nbsp;km circle and shade the land that could host solar.</li>
   <li>Use the <b>Street / Satellite</b> switch (top-right) to see what's actually on that land.</li>
   <li>Drag the <b>Nameplate filter</b> sliders (top-left) to show only plants in a MW range
@@ -236,6 +254,51 @@ function resetFilter(){ fmin.value=0; fmax.value=CAPMAX; applyFilter(); }
 fmin.addEventListener('input',applyFilter);
 fmax.addEventListener('input',applyFilter);
 applyFilter();
+// ---- Search: place names (Nominatim JSONP, works from file://) or "lat, lon" ----
+var pinIcon = L.divIcon({className:'searchpin', html:'\ud83d\udccd', iconSize:[24,24],
+  iconAnchor:[5,22], popupAnchor:[7,-20]});
+var searchPin=null, geoSeq=0;
+function setStatus(t){ document.getElementById('searchStatus').textContent=t||''; }
+
+function dropPin(la, lo, label, bb){
+  if(searchPin) map.removeLayer(searchPin);
+  searchPin = L.marker([la,lo],{icon:pinIcon, zIndexOffset:1000}).addTo(map);
+  searchPin.bindPopup('<div class="info"><b>'+(label||('📍 '+la.toFixed(4)+', '+lo.toFixed(4)))+
+    '</b><br><span class="mut" style="color:#777">'+la.toFixed(4)+', '+lo.toFixed(4)+
+    '</span></div>').openPopup();
+  if(bb){ map.fitBounds([[+bb[0],+bb[2]],[+bb[1],+bb[3]]],{maxZoom:15,padding:[24,24]}); }
+  else { map.setView([la,lo],13); }
+}
+
+function geocode(q){
+  setStatus('Searching…');
+  var seq=++geoSeq, cb='__geocb_'+seq, s;
+  var timer=setTimeout(function(){ cleanup(); if(seq===geoSeq) setStatus('No response'); },12000);
+  function cleanup(){ try{delete window[cb];}catch(e){window[cb]=undefined;}
+    if(s&&s.parentNode) s.parentNode.removeChild(s); }
+  window[cb]=function(data){
+    clearTimeout(timer); cleanup();
+    if(seq!==geoSeq) return;                       // superseded by a newer search
+    if(!data||!data.length){ setStatus('Not found — try "lat, lon"'); return; }
+    var r=data[0]; setStatus('');
+    dropPin(+r.lat, +r.lon, r.display_name, r.boundingbox);
+  };
+  s=document.createElement('script');
+  s.src='https://nominatim.openstreetmap.org/search?format=json&limit=1&json_callback='+cb+
+        '&q='+encodeURIComponent(q);
+  s.onerror=function(){ clearTimeout(timer); cleanup(); if(seq===geoSeq) setStatus('Search failed'); };
+  document.body.appendChild(s);
+}
+
+function doSearch(){
+  var q=document.getElementById('searchInput').value.trim();
+  if(!q) return;
+  var m=q.match(/^\s*(-?\d{1,3}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if(m){ var la=+m[1], lo=+m[2];
+    if(la>=-90&&la<=90&&lo>=-180&&lo<=180){ setStatus(''); dropPin(la,lo,null,null); return; } }
+  geocode(q);
+}
+
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape') document.getElementById('sidebar').classList.remove('open');
 });

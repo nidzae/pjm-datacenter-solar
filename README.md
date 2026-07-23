@@ -87,6 +87,8 @@ Run order: `01 → 03 → 02 → 04 → 05 → 06 → 07 → 08`.
 A self-contained Leaflet page (base HTML ~55 KB; open it in any browser — needs internet for
 the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
 
+- **Search** (top center) — type a place name (geocoded via OpenStreetMap Nominatim) or raw
+  `lat, lon` to drop a pin and zoom there.
 - **Markers** — every PJM gas plant. **Green = qualifies** (10% gas cap), **red = does not**;
   **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/km², headroom
   per gas cap).
