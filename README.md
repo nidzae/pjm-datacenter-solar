@@ -76,13 +76,31 @@ headroom   = dev_MW / solar_req
 | 5 Buffer aggregate | `05_buffer_aggregate.py` | `data/processed/pjm_plants_with_land.csv` |
 | 6 Qualification | `06_qualify.py` | `outputs/pjm_sites.csv`, `outputs/pjm_sites_sensitivity.csv` |
 | 7 Map + summary | `make_developable_geojson.py`, `07_map.py` | `outputs/pjm_map.html` (+ `outputs/dev_tiles/`), `outputs/summary.md` |
-
-> The map lazy-loads each plant's developable-land polygon from `outputs/dev_tiles/plant_<code>.js`
-> on click (full 30 m fidelity, ~1.6k interior holes so lakes/developed/roads are excluded, not
-> filled). Keep the `dev_tiles/` folder next to `pjm_map.html`.
 | 8 Flags (optional) | `08_flags.py` | `outputs/pjm_sites_flags.csv` |
 
 Run order: `01 → 03 → 02 → 04 → 05 → 06 → 07 → 08`.
+
+---
+
+## Interactive map (`outputs/pjm_map.html`)
+
+A self-contained Leaflet page (base HTML ~55 KB; open it in any browser — needs internet for
+the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
+
+- **Markers** — every PJM gas plant. **Green = qualifies** (10% gas cap), **red = does not**;
+  **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/km², headroom
+  per gas cap).
+- **Click-to-hatch** — clicking a plant draws its 10 km buffer and shades the **developable
+  solar land** with a thin diagonal hatch. Rendered at full **30 m fidelity with ~1.6k interior
+  holes**, so lakes, developed parcels, roads, wetlands, steep slope, forest, and protected
+  areas are cut out, not filled over. Each plant's polygon lazy-loads from
+  `dev_tiles/plant_<code>.js` on click (via injected `<script>`, so it works from `file://`).
+- **Street / Satellite toggle** (top-right) — flip to Esri World Imagery to see what's actually
+  on the shaded land.
+- **Nameplate range slider** (top-left) — filter the visible plants to any MW band (e.g. min
+  1000 to isolate the ≥ 1 GW plants — all of which are red); *reset* restores the full range.
+- **ⓘ Guide sidebar** (top-left) — a slide-in panel explaining every symbol, the glossary, the
+  test, and the caveats; parameters and result counts are injected live from the data.
 
 ---
 
