@@ -1,5 +1,10 @@
 # PJM Gas-Plant / Solar / Data-Center Land Screen
 
+### 🌐 Live interactive map → **https://nidzae.github.io/pjm-datacenter-solar/**
+
+Click any plant to shade its developable solar land; toggle satellite imagery; search a place
+or coordinates; filter by hostable data-center load. See [Interactive map](#interactive-map-outputspjm_maphtml) below.
+
 A first-pass GIS **feasibility screen**: for every operating natural-gas power plant in the
 PJM region, is there enough developable land within a short radius to build (a) a new data
 center and (b) enough new solar to serve a flat 24/7 load equal to the plant's nameplate
