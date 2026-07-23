@@ -29,6 +29,12 @@ combined-cycle). Qualifying plants and hostable data-center load at 10 km buffer
 | 10% | 91 plants · 17.8 GW | 131 plants · 33.4 GW |
 | 20% | 93 plants · 18.8 GW | 135 plants · 37.9 GW |
 
+**Whole-plant vs partial opportunity.** The counts above require a plant to host a *full-nameplate*
+data center. But a plant that can't fit the full load can still host a *smaller* one matched to its
+available solar land (hostable load = `min(nameplate, headroom × nameplate)`). Summing those partials,
+total **solar-limited hostable data-center load rises from ~17.8 GW (whole-plant, 10%) to ~44 GW** —
+the map's popups and its hostable-load slider expose this per plant.
+
 **Forest exclusion is the dominant sensitivity** (heavily-forested VA/PA lose the most).
 By-state, the **forest-included** screen aligns with paper Fig. 4 (VA 8.0 vs 10, OH 7.3 vs
 12 GW); totals are the same order of magnitude but lower, as expected — Fig. 4 measures a
@@ -99,8 +105,12 @@ the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
   `dev_tiles/plant_<code>.js` on click (via injected `<script>`, so it works from `file://`).
 - **Street / Satellite toggle** (top-right) — flip to Esri World Imagery to see what's actually
   on the shaded land.
-- **Nameplate range slider** (top-left) — filter the visible plants to any MW band (e.g. min
-  1000 to isolate the ≥ 1 GW plants — all of which are red); *reset* restores the full range.
+- **Popup** — for each plant: nameplate (= the 24/7 load), AC CF, solar that *fits* vs solar
+  *needed*, and the **hostable DC load** (the solar-limited data-center size it can actually
+  power — full nameplate for green, partial for red), plus headroom per gas cap.
+- **Hostable-load range slider** (top-left) — filter to plants that can host a data center in a
+  given MW band, using the **solar-limited hostable load** (partial capacity), not full
+  nameplate; *reset* restores the full range.
 - **ⓘ Guide sidebar** (top-left) — a slide-in panel explaining every symbol, the glossary, the
   test, and the caveats; parameters and result counts are injected live from the data.
 

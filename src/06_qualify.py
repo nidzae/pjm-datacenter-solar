@@ -72,6 +72,14 @@ def main() -> None:
     wide = wide.reset_index()
     qual_cols = [c for c in wide.columns if c.startswith("qualifies_")]
     wide["qualifying_any"] = wide[qual_cols].any(axis=1)
+    # Solar-limited hostable data-center load per gas cap = min(nameplate, headroom * nameplate).
+    # For qualifying plants this equals nameplate; for the rest it's the partial capacity the
+    # available solar land can still power.
+    for g in C.GAS_CAPS:
+        gg = int(g * 100)
+        wide[f"hostable_MW_g{gg}"] = np.minimum(
+            wide["nameplate_MW"], wide[f"headroom_g{gg}"] * wide["nameplate_MW"]
+        )
     wide = wide.sort_values(["qualifying_any", "nameplate_MW"], ascending=[False, False])
     wide.to_csv(C.OUTPUTS / "pjm_sites.csv", index=False)
 
@@ -89,6 +97,13 @@ def main() -> None:
             print(f"  g={int(g*100):>2}% : {len(q):>3} plants qualify   "
                   f"hostable load = {q.nameplate_MW.sum()/1000:5.1f} GW "
                   f"of {sub.nameplate_MW.sum()/1000:.1f} GW fleet")
+
+    print("\nSolar-limited hostable load INCLUDING partial data centers (forest-excluded, 10km):")
+    for g in C.GAS_CAPS:
+        gg = int(g * 100)
+        whole = wide.loc[wide[f"qualifies_g{gg}"] == True, "nameplate_MW"].sum() / 1000  # noqa: E712
+        partial = wide[f"hostable_MW_g{gg}"].sum() / 1000
+        print(f"  g={gg:>2}% : whole-plant {whole:5.1f} GW  ->  with partials {partial:5.1f} GW")
 
 
 if __name__ == "__main__":

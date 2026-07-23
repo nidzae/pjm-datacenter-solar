@@ -54,6 +54,10 @@ def make_map(wide: pd.DataFrame) -> None:
             "h20": round(float(r.headroom_g20), 2), "q10": bool(r.qualifies_g10),
             "sr5": round(float(r.solar_req_MW_g5), 0), "sr10": round(float(r.solar_req_MW_g10), 0),
             "sr20": round(float(r.solar_req_MW_g20), 0),
+            # solar-limited hostable data-center load = min(nameplate, headroom * nameplate)
+            "hl5": round(min(r.nameplate_MW, r.headroom_g5 * r.nameplate_MW), 0),
+            "hl10": round(min(r.nameplate_MW, r.headroom_g10 * r.nameplate_MW), 0),
+            "hl20": round(min(r.nameplate_MW, r.headroom_g20 * r.nameplate_MW), 0),
             "hasdev": code in have,
         })
 
@@ -63,19 +67,23 @@ def make_map(wide: pd.DataFrame) -> None:
     q10_gw = q10.nameplate_MW.sum() / 1000.0
     cf_lo, cf_hi = wide.cf_ac.min(), wide.cf_ac.max()
     caps = " / ".join(f"{int(g*100)}%" for g in C.GAS_CAPS)
+    # total solar-limited hostable data-center load at 10% gas (sum of per-plant partials)
+    host_gw = wide.apply(
+        lambda r: min(r.nameplate_MW, r.headroom_g10 * r.nameplate_MW), axis=1
+    ).sum() / 1000.0
 
     html = _MAP_TEMPLATE
     html = html.replace("/*__PATTERN_JS__*/", pattern_js)
     html = html.replace("__PLANTS__", json.dumps(plants, separators=(",", ":")))
     html = html.replace("__SIDEBAR__", _sidebar_html(n, fleet_gw, len(q10), q10_gw,
-                                                     cf_lo, cf_hi, caps))
+                                                     cf_lo, cf_hi, caps, host_gw))
     out = C.OUTPUTS / "pjm_map.html"
     out.write_text(html)
     print(f"Wrote {out}  ({out.stat().st_size/1e6:.2f} MB base; {len(have)} on-demand "
           f"developable tiles in {tile_dir.name}/)")
 
 
-def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps) -> str:
+def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps, host_gw) -> str:
     pd_mw = C.POWER_DENSITY_MW_PER_KM2
     pd_pct = (cf_lo + cf_hi) / 2 * 100      # ~mean capacity factor, % of the time panels produce
     return f"""
@@ -93,8 +101,9 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
   <li><b>Search</b> (top) for a place name or <code>lat, lon</code> to drop a pin and zoom there.</li>
   <li><b>Click any plant</b> to draw its 10&nbsp;km circle and shade the land that could host solar.</li>
   <li>Use the <b>Street / Satellite</b> switch (top-right) to see what's actually on that land.</li>
-  <li>Drag the <b>Nameplate filter</b> sliders (top-left) to show only plants in a MW range
-      (e.g. min&nbsp;1000 to isolate the &ge;&nbsp;1&nbsp;GW plants) — green and red both; <i>reset</i> clears it.</li>
+  <li>Drag the <b>Hostable-load filter</b> sliders (top-left) to show only plants that can host a
+      data-center of a given size (MW). This uses each plant's <i>solar-limited hostable load</i>
+      (the partial capacity that fits), not full nameplate; <i>reset</i> clears it.</li>
   <li>Hover/click a marker for its <b>popup</b> with the numbers below.</li>
 </ul>
 
@@ -103,7 +112,8 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
   <dt><span class="dot" style="background:#1a9850"></span> green marker</dt>
   <dd>Plant <b>qualifies</b> — enough developable land at the 10% gas-cap case.</dd>
   <dt><span class="dot" style="background:#d73027"></span> red marker</dt>
-  <dd>Does <b>not</b> qualify — solar+DC land won't fit within 10&nbsp;km (usually a very large plant).</dd>
+  <dd>The <b>full nameplate</b> load won't fit — but a <b>smaller data center still can</b> (see
+      hostable load below). Red ≠ no opportunity, just partial.</dd>
   <dt><span class="dot smdot" style="background:#888"></span>&hairsp;&ndash;&hairsp;<span class="dot bigdot" style="background:#888"></span> marker size</dt>
   <dd>Proportional to the plant's <b>nameplate capacity (MW)</b> = the size of the data-center load being tested.</dd>
   <dt><span class="hatchsw"></span> green hatch</dt>
@@ -126,8 +136,12 @@ storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of
       (~{pd_mw:.0f} MW/km²) = how much solar physically fits.</dd>
   <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / CF × nameplate. The panels required so annual
       solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
-  <dt>Headroom</dt><dd>Solar that fits ÷ solar needed. <b>&ge; 1.0 qualifies</b>; shown per gas cap.
-      Higher = more slack.</dd>
+  <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the available solar land can
+      actually power = min(nameplate, solar&nbsp;that&nbsp;fits ÷ {C.OVERBUILD}(1−g)/CF). For green plants
+      this is the full nameplate; for red plants it's the <b>partial</b> data center you could still build.
+      <b>The hostable-load slider filters on this.</b></dd>
+  <dt>Headroom</dt><dd>Solar that fits ÷ solar needed. <b>&ge; 1.0 = full nameplate qualifies</b>;
+      shown per gas cap.</dd>
   <dt>Gas cap (g)</dt><dd>Share of annual data-center energy the gas plant may supply ({caps}).
       Lower g = cleaner but needs more solar/land.</dd>
 </dl>
@@ -138,8 +152,10 @@ land needed = solar ÷ {pd_mw:.0f} MW/km² (+ {C.DC_LAND_ACRES:.0f}-acre data-ce
 Qualifies when developable land ≥ land needed.</p>
 
 <h3>At a glance</h3>
-<p><b>{n_qual} of {n} plants qualify</b> at the 10% gas cap (conservative, forest-excluded case),
-hosting <b>{qual_gw:.0f} GW</b> of clean-ish data-center load.</p>
+<p><b>{n_qual} of {n} plants</b> fit a full-nameplate data center at the 10% gas cap
+(conservative, forest-excluded) = <b>{qual_gw:.0f} GW</b>. But counting the <b>partial</b>
+data centers that the other sites can still host, total <b>solar-limited hostable load rises to
+~{host_gw:.0f} GW</b> — the opportunity beyond the whole-plant winners.</p>
 
 <h3>Read with care</h3>
 <ul>
@@ -223,7 +239,7 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 </div>
 <button id="guideBtn" onclick="document.getElementById('sidebar').classList.add('open')">&#9432; Guide</button>
 <div id="filterBox">
-  <div class="flabel">Nameplate filter (MW)</div>
+  <div class="flabel">Hostable load filter (MW)</div>
   <div class="frow"><span>min</span><input type="range" id="fmin"></div>
   <div class="frow"><span>max</span><input type="range" id="fmax"></div>
   <div class="fcount" id="fcount"></div>
@@ -295,23 +311,25 @@ PLANTS.forEach(function(p){
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
     'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
     'Solar that <u>fits</u> (developable): <b>'+p.dmw.toLocaleString()+'</b> MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' km&sup2;<br>'+
-    'Solar <u>needed</u>:&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
+    'Solar <u>needed</u> (full load):&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
+    '<span style="color:#0b6b2e">&#9654; <b>Hostable DC load</b> (solar-limited):&nbsp; g5% '+p.hl5.toLocaleString()+' &middot; g10% <b>'+p.hl10.toLocaleString()+'</b> &middot; g20% '+p.hl20.toLocaleString()+' MW</span><br>'+
     'Headroom (fits&divide;needed):&nbsp; g5% '+p.h5.toFixed(2)+' &middot; g10% <b>'+p.h10.toFixed(2)+'</b> &middot; g20% '+p.h20.toFixed(2)+
-    ' <span style="color:#777">(&ge;1 qualifies)</span><br>'+
-    'Qualifies @10%: <b>'+(p.q10?'YES':'no')+'</b>'+
+    ' <span style="color:#777">(&ge;1 = full nameplate qualifies)</span><br>'+
+    'Full nameplate qualifies @10%: <b>'+(p.q10?'YES':'no')+'</b>'+
     (p.hasdev?'<br><span style="color:#1a9d4d">&#9632; click marker to shade developable land</span>'
              :'<br><i>no developable land within 10&nbsp;km</i>')+'</div>';
   m.bindPopup(html,{maxWidth:360});
   m.on('click',function(){showDev(p);});
-  markers.push({m:m, mw:p.mw, code:p.code});
+  markers.push({m:m, mw:p.mw, hl:p.hl10, code:p.code});
 });
 
-// Nameplate range filter: show only plants with min <= nameplate <= max (both colors).
-var CAPMAX = Math.ceil(MAXMW/50)*50;
+// Hostable-load range filter: show only plants whose solar-limited hostable DC load (at 10%
+// gas) is within [min, max] MW. This uses the PARTIAL capacity, not full nameplate.
+var HLMAX = Math.ceil(Math.max.apply(null,markers.map(function(o){return o.hl;}))/50)*50;
 var fmin=document.getElementById('fmin'), fmax=document.getElementById('fmax'),
     fcount=document.getElementById('fcount');
-[fmin,fmax].forEach(function(s){s.min=0;s.max=CAPMAX;s.step=25;});
-fmin.value=0; fmax.value=CAPMAX;
+[fmin,fmax].forEach(function(s){s.min=0;s.max=HLMAX;s.step=10;});
+fmin.value=0; fmax.value=HLMAX;
 
 function applyFilter(){
   var lo=+fmin.value, hi=+fmax.value;
@@ -321,22 +339,22 @@ function applyFilter(){
   }
   var shown=0;
   markers.forEach(function(o){
-    var show = o.mw>=lo && o.mw<=hi;
+    var show = o.hl>=lo && o.hl<=hi;
     if(show){ if(!map.hasLayer(o.m)) o.m.addTo(map); shown++; }
     else if(map.hasLayer(o.m)) map.removeLayer(o.m);
   });
-  fcount.textContent = shown+' of '+markers.length+' plants · '+
+  fcount.textContent = shown+' of '+markers.length+' plants · hostable '+
     lo.toLocaleString()+'–'+hi.toLocaleString()+' MW';
   if(currentCode!=null){                        // clear overlay if current plant filtered out
     var cur=null; markers.forEach(function(o){ if(o.code===currentCode) cur=o; });
-    if(cur && (cur.mw<lo || cur.mw>hi)){
+    if(cur && (cur.hl<lo || cur.hl>hi)){
       if(devLayer){map.removeLayer(devLayer);devLayer=null;}
       if(bufLayer){map.removeLayer(bufLayer);bufLayer=null;}
       currentCode=null;
     }
   }
 }
-function resetFilter(){ fmin.value=0; fmax.value=CAPMAX; applyFilter(); }
+function resetFilter(){ fmin.value=0; fmax.value=HLMAX; applyFilter(); }
 fmin.addEventListener('input',applyFilter);
 fmax.addEventListener('input',applyFilter);
 applyFilter();
@@ -422,6 +440,19 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
                    (long.forest == "excl_forest") & (np.isclose(long.acres_per_MW, apm))]
         q = sub[sub.qualifies]
         L.append(f"| {apm:.0f} | {C.power_density(apm):.1f} | {len(q)} | {q.nameplate_MW.sum()/1000:.1f} |")
+
+    # Whole-plant vs partial-inclusive hostable load (the "opportunity left on the table").
+    L.append("\n## Hostable load — whole-plant vs including partial data centers (10 km, forest excl.)\n")
+    L.append("A plant that can't host a *full-nameplate* data center can usually still host a "
+             "*smaller* one matched to its available solar land. Hostable load = "
+             "min(nameplate, headroom × nameplate).\n")
+    L.append("| Gas cap | Whole-plant qualifiers (GW) | Including partial DCs (GW) |")
+    L.append("|---|---|---|")
+    for g in C.GAS_CAPS:
+        gg = int(g * 100)
+        whole = wide.loc[wide[f"qualifies_g{gg}"] == True, "nameplate_MW"].sum() / 1000  # noqa: E712
+        partial = wide[f"hostable_MW_g{gg}"].sum() / 1000
+        L.append(f"| {gg}% | {whole:.1f} | {partial:.1f} |")
 
     # By-state roll-up vs paper Fig. 4, BOTH forest settings side by side.
     L.append("\n## Qualifying nameplate by state (10 km, 10% gas cap, 7 ac/MW) — vs paper Fig. 4\n")

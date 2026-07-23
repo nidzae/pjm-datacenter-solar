@@ -34,6 +34,16 @@ Parameters: overbuild=1.3, power density default 35.3 MW/km² (7 ac/MW), DC parc
 | 7 | 35.3 | 91 | 17.8 |
 | 8 | 30.9 | 84 | 14.7 |
 
+## Hostable load — whole-plant vs including partial data centers (10 km, forest excl.)
+
+A plant that can't host a *full-nameplate* data center can usually still host a *smaller* one matched to its available solar land. Hostable load = min(nameplate, headroom × nameplate).
+
+| Gas cap | Whole-plant qualifiers (GW) | Including partial DCs (GW) |
+|---|---|---|
+| 5% | 17.5 | 42.8 |
+| 10% | 17.8 | 44.2 |
+| 20% | 18.8 | 47.5 |
+
 ## Qualifying nameplate by state (10 km, 10% gas cap, 7 ac/MW) — vs paper Fig. 4
 
 | State | Forest excl. GW | Forest incl. GW | Paper Fig. 4 (GW) |
