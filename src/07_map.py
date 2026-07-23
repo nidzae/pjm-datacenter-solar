@@ -52,6 +52,8 @@ def make_map(wide: pd.DataFrame) -> None:
             "darea": round(float(r.developable_area_km2), 0),
             "h5": round(float(r.headroom_g5), 2), "h10": round(float(r.headroom_g10), 2),
             "h20": round(float(r.headroom_g20), 2), "q10": bool(r.qualifies_g10),
+            "sr5": round(float(r.solar_req_MW_g5), 0), "sr10": round(float(r.solar_req_MW_g10), 0),
+            "sr20": round(float(r.solar_req_MW_g20), 0),
             "hasdev": code in have,
         })
 
@@ -75,6 +77,7 @@ def make_map(wide: pd.DataFrame) -> None:
 
 def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps) -> str:
     pd_mw = C.POWER_DENSITY_MW_PER_KM2
+    pd_pct = (cf_lo + cf_hi) / 2 * 100      # ~mean capacity factor, % of the time panels produce
     return f"""
 <div class="hd"><b>&#9432; Map guide</b>
   <button class="x" onclick="document.getElementById('sidebar').classList.remove('open')">&times;</button></div>
@@ -111,14 +114,20 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
 </dl>
 
 <h3>Terms in the popup</h3>
+<p class="mut" style="margin-bottom:8px"><b>Key point:</b> a plant qualifies when the solar that <i>fits</i>
+&ge; the solar <i>needed</i> — <b>not</b> when developable MW &gt; nameplate MW. A flat 24/7 load needs
+roughly <b>6&times; its size in solar panels</b> (panels run only ~{pd_pct:.0f}% of the time, plus overbuild for
+storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of solar.</p>
 <dl>
-  <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it doubles as the data-center load size.</dd>
+  <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
   <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. PJM range here
       {cf_lo:.2f}–{cf_hi:.2f}. Higher = less solar needed.</dd>
-  <dt>Developable (MW / km²)</dt><dd>Buildable solar land in the buffer × power density
+  <dt>Solar that fits (developable)</dt><dd>Buildable solar land in the buffer × power density
       (~{pd_mw:.0f} MW/km²) = how much solar physically fits.</dd>
-  <dt>Headroom</dt><dd>Developable solar ÷ solar required. <b>&ge; 1.0 qualifies</b>; shown for each
-      gas cap. Higher = more slack.</dd>
+  <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / CF × nameplate. The panels required so annual
+      solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
+  <dt>Headroom</dt><dd>Solar that fits ÷ solar needed. <b>&ge; 1.0 qualifies</b>; shown per gas cap.
+      Higher = more slack.</dd>
   <dt>Gas cap (g)</dt><dd>Share of annual data-center energy the gas plant may supply ({caps}).
       Lower g = cleaner but needs more solar/land.</dd>
 </dl>
@@ -283,14 +292,16 @@ PLANTS.forEach(function(p){
   var m = L.circleMarker([p.lat,p.lon],{radius:radius,color:color,weight:1,
     fillColor:color,fillOpacity:0.75}).addTo(map);
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
-    'Nameplate: '+p.mw.toLocaleString()+' MW<br>'+
+    'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
     'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
-    'Developable (10&nbsp;km): '+p.dmw.toLocaleString()+' MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' km&sup2;<br>'+
-    'Headroom&nbsp; g5%='+p.h5.toFixed(2)+'&nbsp; g10%='+p.h10.toFixed(2)+'&nbsp; g20%='+p.h20.toFixed(2)+'<br>'+
+    'Solar that <u>fits</u> (developable): <b>'+p.dmw.toLocaleString()+'</b> MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' km&sup2;<br>'+
+    'Solar <u>needed</u>:&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
+    'Headroom (fits&divide;needed):&nbsp; g5% '+p.h5.toFixed(2)+' &middot; g10% <b>'+p.h10.toFixed(2)+'</b> &middot; g20% '+p.h20.toFixed(2)+
+    ' <span style="color:#777">(&ge;1 qualifies)</span><br>'+
     'Qualifies @10%: <b>'+(p.q10?'YES':'no')+'</b>'+
     (p.hasdev?'<br><span style="color:#1a9d4d">&#9632; click marker to shade developable land</span>'
              :'<br><i>no developable land within 10&nbsp;km</i>')+'</div>';
-  m.bindPopup(html,{maxWidth:340});
+  m.bindPopup(html,{maxWidth:360});
   m.on('click',function(){showDev(p);});
   markers.push({m:m, mw:p.mw, code:p.code});
 });
