@@ -49,7 +49,7 @@ def make_map(wide: pd.DataFrame) -> None:
             "lat": round(float(r.lat), 5), "lon": round(float(r.lon), 5),
             "mw": round(float(r.nameplate_MW), 0), "cf": round(float(r.cf_ac), 3),
             "dmw": round(float(r.developable_MW), 0),
-            "darea": round(float(r.developable_area_km2), 0),
+            "darea": round(float(r.developable_area_mi2), 1),
             "h5": round(float(r.headroom_g5), 2), "h10": round(float(r.headroom_g10), 2),
             "h20": round(float(r.headroom_g20), 2), "q10": bool(r.qualifies_g10),
             "sr5": round(float(r.solar_req_MW_g5), 0), "sr10": round(float(r.solar_req_MW_g10), 0),
@@ -84,7 +84,7 @@ def make_map(wide: pd.DataFrame) -> None:
 
 
 def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps, host_gw) -> str:
-    pd_mw = C.POWER_DENSITY_MW_PER_KM2
+    pd_mw = C.POWER_DENSITY_MW_PER_MI2
     pd_pct = (cf_lo + cf_hi) / 2 * 100      # ~mean capacity factor, % of the time panels produce
     return f"""
 <div class="hd"><b>&#9432; Map guide</b>
@@ -133,7 +133,7 @@ storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of
   <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. PJM range here
       {cf_lo:.2f}–{cf_hi:.2f}. Higher = less solar needed.</dd>
   <dt>Solar that fits (developable)</dt><dd>Buildable solar land in the buffer × power density
-      (~{pd_mw:.0f} MW/km²) = how much solar physically fits.</dd>
+      (~{pd_mw:.0f} MW/mi²) = how much solar physically fits.</dd>
   <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / CF × nameplate. The panels required so annual
       solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
   <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the available solar land can
@@ -148,7 +148,7 @@ storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of
 
 <h3>The test (per plant, per gas cap)</h3>
 <p class="mut">solar needed = {C.OVERBUILD} × (1 − g) / CF × nameplate&nbsp;&nbsp;·&nbsp;&nbsp;
-land needed = solar ÷ {pd_mw:.0f} MW/km² (+ {C.DC_LAND_ACRES:.0f}-acre data-center parcel).
+land needed = solar ÷ {pd_mw:.0f} MW/mi² (+ {C.DC_LAND_ACRES:.0f}-acre data-center parcel).
 Qualifies when developable land ≥ land needed.</p>
 
 <h3>At a glance</h3>
@@ -310,7 +310,7 @@ PLANTS.forEach(function(p){
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
     'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
-    'Solar that <u>fits</u> (developable): <b>'+p.dmw.toLocaleString()+'</b> MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' km&sup2;<br>'+
+    'Solar that <u>fits</u> (developable): <b>'+p.dmw.toLocaleString()+'</b> MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' mi&sup2;<br>'+
     'Solar <u>needed</u> (full load):&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
     '<span style="color:#0b6b2e">&#9654; <b>Hostable DC load</b> (solar-limited):&nbsp; g5% '+p.hl5.toLocaleString()+' &middot; g10% <b>'+p.hl10.toLocaleString()+'</b> &middot; g20% '+p.hl20.toLocaleString()+' MW</span><br>'+
     'Headroom (fits&divide;needed):&nbsp; g5% '+p.h5.toFixed(2)+' &middot; g10% <b>'+p.h10.toFixed(2)+'</b> &middot; g20% '+p.h20.toFixed(2)+
@@ -416,8 +416,8 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
     L.append(f"Fleet: **{len(wide)} operating PJM gas plants**, "
              f"**{wide.nameplate_MW.sum()/1000:.1f} GW** total nameplate.\n")
     L.append(f"Parameters: overbuild={C.OVERBUILD}, power density default "
-             f"{C.POWER_DENSITY_MW_PER_KM2:.1f} MW/km² ({C.ACRES_PER_MW:.0f} ac/MW), "
-             f"DC parcel {C.DC_LAND_ACRES:.0f} acres, NSRDB TMY CF (PVWatts, AC).\n")
+             f"{C.POWER_DENSITY_MW_PER_MI2:.0f} MW/mi² ({C.ACRES_PER_MW:.0f} ac/MW), "
+             f"DC parcel {C.DC_LAND_ACRES:.0f} acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².\n")
 
     for forest, ftag in (("excl_forest", "forest EXCLUDED (conservative default)"),
                          ("incl_forest", "forest INCLUDED (less aggressive)")):
@@ -433,7 +433,7 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
         L.append("")
 
     L.append("## Power-density sensitivity (10 km, 10% gas cap, forest excluded)\n")
-    L.append("| acres/MW | MW/km² | Plants qualifying | Hostable load (GW) |")
+    L.append("| acres/MW | MW/mi² | Plants qualifying | Hostable load (GW) |")
     L.append("|---|---|---|---|")
     for apm in C.ACRES_PER_MW_SENSITIVITY:
         sub = long[(long.buffer_km == C.BUFFER_KM_PRIMARY) & (long.gas_cap == 0.10) &

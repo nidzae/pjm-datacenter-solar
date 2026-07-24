@@ -7,7 +7,6 @@
   ],
   "overbuild": 1.3,
   "acres_per_MW": 7.0,
-  "power_density_MW_per_km2": 35.301,
   "acres_per_MW_sensitivity": [
     5.0,
     7.0,
@@ -57,5 +56,13 @@
     "nsrdb": "GOES v4.0.0 TMY",
     "padus": "4.0"
   },
-  "nrel_hsds_endpoint": "https://developer.nlr.gov/api/hsds"
+  "nrel_hsds_endpoint": "https://developer.nlr.gov/api/hsds",
+  "power_density_MW_per_mi2": 91.4,
+  "acres_per_MW_sensitivity_MW_per_mi2": [
+    128.0,
+    91.4,
+    80.0
+  ],
+  "area_unit": "mi2 (square miles)",
+  "dc_land_mi2": 0.234
 }

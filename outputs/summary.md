@@ -2,7 +2,7 @@
 
 Fleet: **199 operating PJM gas plants**, **94.4 GW** total nameplate.
 
-Parameters: overbuild=1.3, power density default 35.3 MW/km² (7 ac/MW), DC parcel 150 acres, NSRDB TMY CF (PVWatts, AC).
+Parameters: overbuild=1.3, power density default 91 MW/mi² (7 ac/MW), DC parcel 150 acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².
 
 ## Qualifying plants & hostable data-center load (GW) — forest EXCLUDED (conservative default)
 
@@ -28,11 +28,11 @@ Parameters: overbuild=1.3, power density default 35.3 MW/km² (7 ac/MW), DC parc
 
 ## Power-density sensitivity (10 km, 10% gas cap, forest excluded)
 
-| acres/MW | MW/km² | Plants qualifying | Hostable load (GW) |
+| acres/MW | MW/mi² | Plants qualifying | Hostable load (GW) |
 |---|---|---|---|
-| 5 | 49.4 | 101 | 23.0 |
-| 7 | 35.3 | 91 | 17.8 |
-| 8 | 30.9 | 84 | 14.7 |
+| 5 | 128.0 | 101 | 23.0 |
+| 7 | 91.4 | 91 | 17.8 |
+| 8 | 80.0 | 84 | 14.7 |
 
 ## Hostable load — whole-plant vs including partial data centers (10 km, forest excl.)
 

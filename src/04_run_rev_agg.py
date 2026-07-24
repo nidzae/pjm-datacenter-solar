@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config as C  # noqa: E402
 
 CELL_M = 990.0  # supply-curve resolution: 33 x 33 NLCD pixels ~ 1 km cell
-PX_KM2 = (C.EXCL_PIXEL_M / 1000.0) ** 2
+PX_MI2 = ((C.EXCL_PIXEL_M / 1000.0) ** 2) * C.MI2_PER_KM2
 _TR_TO_4326 = Transformer.from_crs(C.CRS_EQUAL_AREA, C.CRS_GEOGRAPHIC, always_xy=True)
 
 
@@ -44,7 +44,7 @@ def cells_for_plant(mask_path: Path, code: int, cf: float) -> pd.DataFrame:
             ndev = int(block.sum())
             if ndev == 0:
                 continue
-            area = ndev * PX_KM2
+            area = ndev * PX_MI2
             # cell centroid in 5070 -> 4326
             cx = t.c + (c0 + block.shape[1] / 2.0) * t.a
             cy = t.f + (r0 + block.shape[0] / 2.0) * t.e
@@ -52,8 +52,8 @@ def cells_for_plant(mask_path: Path, code: int, cf: float) -> pd.DataFrame:
             recs.append({
                 "plant_code": code, "x_5070": cx, "y_5070": cy,
                 "lon": lon, "lat": lat,
-                "area_developable_km2": area,
-                "capacity_MW": area * C.POWER_DENSITY_MW_PER_KM2,
+                "area_developable_mi2": area,
+                "capacity_MW": area * C.POWER_DENSITY_MW_PER_MI2,
                 "mean_cf": cf,
             })
     return pd.DataFrame(recs)

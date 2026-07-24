@@ -118,13 +118,13 @@ def build_plant_mask(code: int, lat: float, lon: float, force: bool = False) -> 
     """Write a 2-band developable mask: band 1 = forest EXCLUDED (conservative default),
     band 2 = forest INCLUDED (less aggressive). Enables the forest sensitivity (Spec §12)."""
     out_tif = C.EXCL_DIR / f"plant_{code}.tif"
-    px_km2 = (C.EXCL_PIXEL_M / 1000.0) ** 2
+    px_mi2 = ((C.EXCL_PIXEL_M / 1000.0) ** 2) * C.MI2_PER_KM2
     if out_tif.exists() and not force:
         with rasterio.open(out_tif) as ds:
             if ds.count >= 2:
                 dev = ds.read(1)
                 return {"plant_code": code, "cached": True,
-                        "developable_km2_box": float(dev.sum()) * px_km2}
+                        "developable_mi2_box": float(dev.sum()) * px_mi2}
 
     x, y = _TR_TO_5070.transform(lon, lat)
     h = C.EXCL_BOX_HALF_M
@@ -155,8 +155,8 @@ def build_plant_mask(code: int, lat: float, lon: float, force: bool = False) -> 
 
     return {
         "plant_code": code, "cached": False,
-        "developable_km2_box": float(dev_excl_forest.sum()) * px_km2,
-        "developable_km2_box_incl_forest": float(dev_incl_forest.sum()) * px_km2,
+        "developable_mi2_box": float(dev_excl_forest.sum()) * px_mi2,
+        "developable_mi2_box_incl_forest": float(dev_incl_forest.sum()) * px_mi2,
         "frac_excl_slope": float((slope > C.SLOPE_MAX_PCT).mean()),
         "frac_excl_protected": float(protected.mean()),
         "frac_forest": float(forest.mean()),
@@ -170,9 +170,9 @@ def _worker(args):
     except Exception as e:  # noqa: BLE001
         info = {"plant_code": code, "error": repr(e)}
     info["name"], info["state"] = name, state
-    dev = info.get("developable_km2_box")
+    dev = info.get("developable_mi2_box")
     tag = "cache" if info.get("cached") else ("ERR " if "error" in info else "built")
-    msg = (f"  [{i+1}/{n}] {tag} {code} {name[:28]:<28} dev={dev:.1f} km2"
+    msg = (f"  [{i+1}/{n}] {tag} {code} {name[:28]:<28} dev={dev:.1f} mi2"
            if dev is not None else f"  [{i+1}/{n}] {tag} {code} {name[:28]} {info.get('error','')[:40]}")
     return info, msg
 
@@ -201,7 +201,7 @@ def main() -> None:
     summ = pd.DataFrame(rows)
     summ_path = C.DATA_PROCESSED / "exclusion_summary.csv"
     summ.to_csv(summ_path, index=False)
-    ok = summ["developable_km2_box"].notna().sum() if "developable_km2_box" in summ else 0
+    ok = summ["developable_mi2_box"].notna().sum() if "developable_mi2_box" in summ else 0
     print(f"\nWrote {summ_path}. Built/loaded {ok}/{len(summ)} plant masks "
           f"in {time.time()-t0:.0f}s. Masks -> {C.EXCL_DIR}")
 

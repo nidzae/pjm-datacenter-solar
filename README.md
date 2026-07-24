@@ -55,7 +55,7 @@ For each plant `p` and gas cap `g ∈ {0.05, 0.10, 0.20}`:
 ```
 R          = OVERBUILD * (1 - g) / CF_p           # MW-AC solar per MW load; OVERBUILD = 1.3
 solar_req  = R * nameplate_MW                      # MW-AC solar required
-land_req   = solar_req / power_density             # km² of solar land
+land_req   = solar_req / power_density             # mi² of solar land
 dev_MW     = developable_area * power_density       # from the land screen
 qualifies  = dev_MW >= solar_req AND developable_area >= land_req + dc_land
 headroom   = dev_MW / solar_req
@@ -69,7 +69,7 @@ headroom   = dev_MW / solar_req
 | Gas caps `g` | 0.05, 0.10, 0.20 |
 | Overbuild multiplier | **1.3** (battery losses + low-sun ride-through; calibrated, not derived) |
 | Buffer radius | 10 km primary, 5 km sensitivity |
-| Power density | 35.3 MW/km² (7 ac/MW); sensitivity 49.4 (5 ac) / 30.9 (8 ac) |
+| Power density | 91 MW/mi² (7 ac/MW); sensitivity 128 (5 ac) / 80 (8 ac). Areas reported in mi². |
 | DC parcel reserve | 150 acres |
 | Solar geometry | fixed tilt = latitude, azimuth 180°, DC:AC 1.3, 14% losses |
 | Capacity factor | per-plant AC, from SAM PVWatts on NSRDB TMY |
@@ -101,7 +101,7 @@ the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
 - **Search** (top center) — type a place name (geocoded via OpenStreetMap Nominatim) or raw
   `lat, lon` to drop a pin and zoom there.
 - **Markers** — every PJM gas plant. **Green = qualifies** (10% gas cap), **red = does not**;
-  **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/km², headroom
+  **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/mi², headroom
   per gas cap).
 - **Click-to-hatch** — clicking a plant draws its 10 km buffer and shades the **developable
   solar land** with a thin diagonal hatch. Rendered at full **30 m fidelity with ~1.6k interior

@@ -4,8 +4,8 @@ Phase 6 -- Qualification test (Spec section 3).
 For each plant x gas cap g x buffer x power-density sensitivity:
     R          = OVERBUILD * (1 - g) / CF_p
     solar_req  = R * nameplate_MW                       (MW-AC solar)
-    land_req   = solar_req / power_density              (km2 of solar land)
-    dev_MW     = developable_area * power_density        (from Phase 5)
+    land_req   = solar_req / power_density              (mi2 of solar land)
+    dev_MW     = developable_area * power_density        (from Phase 5, area in mi2)
     qualifies  = dev_MW >= solar_req AND developable_area >= land_req + dc_land
     headroom   = dev_MW / solar_req
 
@@ -33,24 +33,24 @@ def main() -> None:
     for r in p.itertuples(index=False):
         for buf in C.BUFFERS_KM:
             for forest in ("excl_forest", "incl_forest"):
-                area = getattr(r, f"developable_area_km2_{int(buf)}km_{forest}")
+                area = getattr(r, f"developable_area_mi2_{int(buf)}km_{forest}")
                 if pd.isna(area):
                     continue
                 for apm in C.ACRES_PER_MW_SENSITIVITY:
-                    pd_mw = C.power_density(apm)
+                    pd_mw = C.power_density(apm)          # MW per mi2
                     dev_mw = area * pd_mw
                     for g in C.GAS_CAPS:
                         R = C.OVERBUILD * (1 - g) / r.cf_ac
                         solar_req = R * r.nameplate_MW_total
-                        land_req = solar_req / pd_mw
-                        qual = (dev_mw >= solar_req) and (area >= land_req + C.DC_LAND_KM2)
+                        land_req = solar_req / pd_mw       # mi2
+                        qual = (dev_mw >= solar_req) and (area >= land_req + C.DC_LAND_MI2)
                         long_rows.append({
                             "plant_code": r.plant_code, "name": r.name, "state": r.state,
                             "lat": r.lat, "lon": r.lon, "nameplate_MW": r.nameplate_MW_total,
                             "cf_ac": r.cf_ac, "buffer_km": buf, "forest": forest,
-                            "acres_per_MW": apm, "power_density_MW_km2": pd_mw, "gas_cap": g,
-                            "R": R, "solar_req_MW": solar_req, "land_req_km2": land_req,
-                            "developable_area_km2": area, "developable_MW": dev_mw,
+                            "acres_per_MW": apm, "power_density_MW_mi2": pd_mw, "gas_cap": g,
+                            "R": R, "solar_req_MW": solar_req, "land_req_mi2": land_req,
+                            "developable_area_mi2": area, "developable_MW": dev_mw,
                             "qualifies": qual,
                             "headroom": dev_mw / solar_req if solar_req > 0 else np.nan,
                         })
@@ -64,9 +64,9 @@ def main() -> None:
                 (long.forest == default_forest)].copy()
     wide = base.pivot_table(
         index=["plant_code", "name", "state", "lat", "lon", "nameplate_MW", "cf_ac",
-               "developable_area_km2", "developable_MW"],
+               "developable_area_mi2", "developable_MW"],
         columns="gas_cap",
-        values=["R", "solar_req_MW", "land_req_km2", "qualifies", "headroom"],
+        values=["R", "solar_req_MW", "land_req_mi2", "qualifies", "headroom"],
     )
     wide.columns = [f"{a}_g{int(b*100)}" for a, b in wide.columns]
     wide = wide.reset_index()

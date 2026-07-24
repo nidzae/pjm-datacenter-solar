@@ -10,7 +10,7 @@ Masks are pixel-exact (30 m) and centered on the plant, so the buffer is simply 
 developable pixels whose centroid lies within R of the plant point.
 
 Output: data/processed/pjm_plants_with_land.csv
-        adds developable_area_km2 and developable_MW at 10 km and 5 km.
+        adds developable_area_mi2 and developable_MW at 10 km and 5 km.
 Run:    python src/05_buffer_aggregate.py
 """
 from __future__ import annotations
@@ -27,12 +27,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config as C  # noqa: E402
 
 _TR = Transformer.from_crs(C.CRS_GEOGRAPHIC, C.CRS_EQUAL_AREA, always_xy=True)
-PX_KM2 = (C.EXCL_PIXEL_M / 1000.0) ** 2
+PX_MI2 = ((C.EXCL_PIXEL_M / 1000.0) ** 2) * C.MI2_PER_KM2   # one 30 m pixel in square miles
 
 
 def developable_area_within(mask_path: Path, lat: float, lon: float,
                             radius_km: float) -> dict[str, float]:
-    """km2 of developable land within radius_km, for both mask bands.
+    """mi2 of developable land within radius_km, for both mask bands.
     band 1 = forest excluded (conservative), band 2 = forest included."""
     px, py = _TR.transform(lon, lat)
     with rasterio.open(mask_path) as ds:
@@ -46,8 +46,8 @@ def developable_area_within(mask_path: Path, lat: float, lon: float,
     dy = ys[:, None] - py
     within = (dx * dx + dy * dy) <= (radius_km * 1000.0) ** 2
     return {
-        "excl_forest": float((b1 & within).sum()) * PX_KM2,
-        "incl_forest": float((b2 & within).sum()) * PX_KM2,
+        "excl_forest": float((b1 & within).sum()) * PX_MI2,
+        "incl_forest": float((b2 & within).sum()) * PX_MI2,
     }
 
 
@@ -61,14 +61,14 @@ def main() -> None:
             rec["mask_missing"] = True
             for b in C.BUFFERS_KM:
                 for fk in ("excl_forest", "incl_forest"):
-                    rec[f"developable_area_km2_{int(b)}km_{fk}"] = np.nan
+                    rec[f"developable_area_mi2_{int(b)}km_{fk}"] = np.nan
                     rec[f"developable_MW_{int(b)}km_{fk}"] = np.nan
         else:
             for b in C.BUFFERS_KM:
                 areas = developable_area_within(mp, r.lat, r.lon, b)
                 for fk, area in areas.items():
-                    rec[f"developable_area_km2_{int(b)}km_{fk}"] = area
-                    rec[f"developable_MW_{int(b)}km_{fk}"] = area * C.POWER_DENSITY_MW_PER_KM2
+                    rec[f"developable_area_mi2_{int(b)}km_{fk}"] = area
+                    rec[f"developable_MW_{int(b)}km_{fk}"] = area * C.POWER_DENSITY_MW_PER_MI2
         rows.append(rec)
 
     land = pd.DataFrame(rows)

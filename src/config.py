@@ -54,21 +54,28 @@ PRIME_MOVERS_ALL = PRIME_MOVERS_PEAKER | PRIME_MOVERS_CCGT
 GAS_CAPS = (0.05, 0.10, 0.20)     # fraction of annual DC energy gas may supply; run all three
 OVERBUILD = 1.3                    # required conservative multiplier (battery losses + low-sun ride-through)
 
-# Power density: derived from a land-use assumption so it is auditable.
-# power_density [MW/km2] = 1 / (acres_per_MW * km2_per_acre)
+# Area units: this is a US screen, so all AREA quantities are reported in square miles (mi2).
+# (Distances/buffers stay in km to match the source paper's methodology.)
 KM2_PER_ACRE = 0.00404686
+MI2_PER_ACRE = 1.0 / 640.0          # 640 acres = 1 square mile (exact)
+MI2_PER_KM2 = 0.3861021585424458    # 1 km2 = 0.386 mi2
+
+# Power density: derived from a land-use assumption so it is auditable.
+# power_density [MW/mi2] = 1 / (acres_per_MW * mi2_per_acre) = 640 / acres_per_MW
 ACRES_PER_MW = 7.0                 # fixed-tilt utility PV total-area, NREL ballpark (range 5-8)
-POWER_DENSITY_MW_PER_KM2 = 1.0 / (ACRES_PER_MW * KM2_PER_ACRE)   # ~= 35.3 MW/km2
+POWER_DENSITY_MW_PER_MI2 = 1.0 / (ACRES_PER_MW * MI2_PER_ACRE)   # ~= 91.4 MW/mi2
+POWER_DENSITY_MW_PER_KM2 = 1.0 / (ACRES_PER_MW * KM2_PER_ACRE)   # ~= 35.3 MW/km2 (internal)
 
 # Sensitivity band on acres/MW -> power density (Spec section 3)
-ACRES_PER_MW_SENSITIVITY = (5.0, 7.0, 8.0)     # -> ~49.4, ~35.3, ~30.9 MW/km2
+ACRES_PER_MW_SENSITIVITY = (5.0, 7.0, 8.0)     # -> ~128, ~91, ~80 MW/mi2
 
 def power_density(acres_per_mw: float = ACRES_PER_MW) -> float:
-    """MW/km2 for a given acres/MW land-use assumption."""
-    return 1.0 / (acres_per_mw * KM2_PER_ACRE)
+    """MW/mi2 for a given acres/MW land-use assumption (US-facing area unit)."""
+    return 1.0 / (acres_per_mw * MI2_PER_ACRE)
 
 # Data-center parcel reserved out of developable land before the area test.
 DC_LAND_ACRES = 150.0
+DC_LAND_MI2 = DC_LAND_ACRES * MI2_PER_ACRE
 DC_LAND_KM2 = DC_LAND_ACRES * KM2_PER_ACRE
 
 # Regional sanity anchor for CF (Spec section 4); reV computes per-site value, this is only a check.
