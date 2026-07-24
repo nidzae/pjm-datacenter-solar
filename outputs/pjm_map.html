@@ -101,9 +101,9 @@ capacity, with the gas plant only covering <b>5% / 10% / 20%</b> backup?</p>
 <dl>
   <dt><span class="dot" style="background:#1a9850"></span> green marker</dt>
   <dd>Plant <b>qualifies</b> — enough developable land at the 10% gas-cap case.</dd>
-  <dt><span class="dot" style="background:#d73027"></span> red marker</dt>
+  <dt><span class="dot" style="background:#f57c00"></span> orange marker</dt>
   <dd>The <b>full nameplate</b> load won't fit — but a <b>smaller data center still can</b> (see
-      hostable load below). Red ≠ no opportunity, just partial.</dd>
+      hostable load below). Orange ≠ no opportunity, just partial.</dd>
   <dt><span class="dot smdot" style="background:#888"></span>&hairsp;&ndash;&hairsp;<span class="dot bigdot" style="background:#888"></span> marker size</dt>
   <dd>Proportional to the plant's <b>nameplate capacity (MW)</b> = the size of the data-center load being tested.</dd>
   <dt><span class="hatchsw"></span> green hatch</dt>
@@ -130,7 +130,7 @@ storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of
       solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
   <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the usable solar land can actually
       power = min(nameplate, usable&nbsp;solar ÷ 1.3(1−g)/CF). Full nameplate for green plants;
-      the <b>partial</b> data center you could still build for red ones.
+      the <b>partial</b> data center you could still build for orange ones.
       <b>The hostable-load slider filters on this.</b></dd>
   <dt>Headroom</dt><dd>Usable solar (after the 150-ac DC parcel) ÷ solar needed.
       <b>&ge; 1.0 = full nameplate qualifies</b>, exactly; shown per gas cap.</dd>
@@ -165,7 +165,7 @@ Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted from Energy Institute at 
 <div class="legend info">
   <b>PJM gas plants — solar + data-center land screen</b><br>
   <span class="sw" style="background:#1a9850"></span> qualifies @ 10% gas cap, 10&nbsp;km&nbsp;&nbsp;
-  <span class="sw" style="background:#d73027"></span> does not<br>
+  <span class="sw" style="background:#f57c00"></span> does not<br>
   marker size &prop; nameplate MW<br>
   <span class="hatchsw"></span> developable solar land (click a plant)
 </div>
@@ -219,7 +219,7 @@ function showDev(p){
 
 var markers=[];   // {m, mw, code} for the >=1 GW filter
 PLANTS.forEach(function(p){
-  var color = p.q10 ? '#1a9850' : '#d73027';
+  var color = p.q10 ? '#1a9850' : '#f57c00';
   var radius = 4 + 10*(p.mw-MINMW)/Math.max(MAXMW-MINMW,1);
   var m = L.circleMarker([p.lat,p.lon],{radius:radius,color:color,weight:1,
     fillColor:color,fillOpacity:0.75}).addTo(map);
