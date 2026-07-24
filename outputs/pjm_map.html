@@ -17,6 +17,9 @@
   .legend b{font-size:13px} .sw{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle}
   .hatchsw{display:inline-block;width:14px;height:11px;vertical-align:middle;
     background:repeating-linear-gradient(-45deg,#1a9d4d 0 1px,transparent 1px 6px);border:1px solid #1a9d4d}
+  .gauge{display:inline-block;width:16px;height:16px;border:1.5px solid #999;border-radius:50%;
+    position:relative;vertical-align:middle;margin-right:3px}
+  .gauge i{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;display:block}
   /* guide sidebar */
   #guideBtn{position:absolute;top:80px;left:10px;z-index:1200;background:#fff;border:1px solid #bbb;
     border-radius:8px;padding:8px 12px;font:600 13px -apple-system,Segoe UI,sans-serif;cursor:pointer;
@@ -99,13 +102,15 @@ capacity, with the gas plant only covering <b>5% / 10% / 20%</b> backup?</p>
 
 <h3>Map symbols</h3>
 <dl>
-  <dt><span class="dot" style="background:#1a9850"></span> green marker</dt>
-  <dd>Plant <b>qualifies</b> — enough developable land at the 10% gas-cap case.</dd>
-  <dt><span class="dot" style="background:#f57c00"></span> orange marker</dt>
-  <dd>The <b>full nameplate</b> load won't fit — but a <b>smaller data center still can</b> (see
-      hostable load below). Orange ≠ no opportunity, just partial.</dd>
-  <dt><span class="dot smdot" style="background:#888"></span>&hairsp;&ndash;&hairsp;<span class="dot bigdot" style="background:#888"></span> marker size</dt>
-  <dd>Proportional to the plant's <b>nameplate capacity (MW)</b> = the size of the data-center load being tested.</dd>
+  <dt>Each marker is a gauge</dt>
+  <dd>The <b>outline ring</b> = the plant's <b>full nameplate</b> (overall size ∝ nameplate MW).
+      The <b>filled core</b> = the <b>hostable data-center load</b> you could actually run there
+      (its area is that share of the ring). Gap between them = capacity the land can't reach.</dd>
+  <dt><span class="gauge" style="border-color:#1a9850;width:14px;height:14px"><i style="background:#1a9850;width:11px;height:11px"></i></span> green</dt>
+  <dd>Core fills the ring — the <b>full nameplate</b> data center fits (qualifies at 10% gas).</dd>
+  <dt><span class="gauge" style="border-color:#f57c00;width:14px;height:14px"><i style="background:#f57c00;width:6px;height:6px"></i></span> orange</dt>
+  <dd>Core is smaller than the ring — only a <b>partial</b> data center fits. Orange ≠ no
+      opportunity, just partial.</dd>
   <dt><span class="hatchsw"></span> green hatch</dt>
   <dd><b>Developable solar land</b> within 10&nbsp;km at full 30&nbsp;m detail. Gaps (holes) are land
       removed by the screen — water, wetlands, developed areas, steep slope, forest, protected areas.</dd>
@@ -164,9 +169,11 @@ Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted from Energy Institute at 
 </div></div>
 <div class="legend info">
   <b>PJM gas plants — solar + data-center land screen</b><br>
-  <span class="sw" style="background:#1a9850"></span> qualifies @ 10% gas cap, 10&nbsp;km&nbsp;&nbsp;
-  <span class="sw" style="background:#f57c00"></span> does not<br>
-  marker size &prop; nameplate MW<br>
+  <span class="gauge" style="border-color:#1a9850"><i style="background:#1a9850;width:12px;height:12px"></i></span>
+  green — full nameplate fits<br>
+  <span class="gauge" style="border-color:#f57c00"><i style="background:#f57c00;width:7px;height:7px"></i></span>
+  orange — only a partial data center fits<br>
+  <span style="color:#777">ring = full nameplate · filled core = hostable DC load · size &prop; nameplate MW</span><br>
   <span class="hatchsw"></span> developable solar land (click a plant)
 </div>
 <script>
@@ -217,12 +224,21 @@ function showDev(p){
   document.body.appendChild(s);
 }
 
-var markers=[];   // {m, mw, code} for the >=1 GW filter
+var markers=[];   // {m, mw, hl, code} for the hostable-load filter
 PLANTS.forEach(function(p){
   var color = p.q10 ? '#1a9850' : '#f57c00';
-  var radius = 4 + 10*(p.mw-MINMW)/Math.max(MAXMW-MINMW,1);
-  var m = L.circleMarker([p.lat,p.lon],{radius:radius,color:color,weight:1,
-    fillColor:color,fillOpacity:0.75}).addTo(map);
+  // outer ring = full nameplate (plant size); inner fill = hostable DC load we can access.
+  var outerR = 4 + 10*(p.mw-MINMW)/Math.max(MAXMW-MINMW,1);
+  var frac = p.mw>0 ? Math.min(1, Math.max(0, p.hl10/p.mw)) : 0;   // share we can host
+  var innerR = outerR*Math.sqrt(frac);                             // area ∝ accessible share
+  var outer = L.circleMarker([p.lat,p.lon],{radius:outerR,color:color,weight:1.5,
+    fill:true,fillColor:color,fillOpacity:0.12});
+  var layers=[outer];
+  if(innerR>0.5){
+    layers.push(L.circleMarker([p.lat,p.lon],{radius:innerR,color:color,weight:0,
+      fill:true,fillColor:color,fillOpacity:0.85}));
+  }
+  var m = L.featureGroup(layers).addTo(map);
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
     'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
