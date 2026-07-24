@@ -186,8 +186,10 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 <style>
   html,body{margin:0;height:100%} #map{width:100%;height:100vh}
   .info{font:13px/1.4 -apple-system,Segoe UI,sans-serif}
-  .legend{position:absolute;bottom:24px;left:24px;z-index:1000;background:#fff;
+  .legend{position:absolute;bottom:24px;left:24px;z-index:1000;background:#fff;max-width:300px;
     padding:10px 14px;border:1px solid #bbb;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+  .legend .row{display:flex;gap:7px;align-items:flex-start;margin:5px 0}
+  .legend .row .gauge{flex:0 0 auto;margin-top:1px}
   .legend b{font-size:13px} .sw{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle}
   .hatchsw{display:inline-block;width:14px;height:11px;vertical-align:middle;
     background:repeating-linear-gradient(-45deg,#1a9d4d 0 1px,transparent 1px 6px);border:1px solid #1a9d4d}
@@ -255,13 +257,19 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div id="sidebar">__SIDEBAR__</div>
 <div class="legend info">
-  <b>PJM gas plants — solar + data-center land screen</b><br>
-  <span class="gauge" style="border-color:#1a9850"><i style="background:#1a9850;width:12px;height:12px"></i></span>
-  green — full nameplate fits<br>
-  <span class="gauge" style="border-color:#f57c00"><i style="background:#f57c00;width:7px;height:7px"></i></span>
-  orange — only a partial data center fits<br>
-  <span style="color:#777">ring = full nameplate · filled core = hostable DC load · size &prop; nameplate MW</span><br>
-  <span class="hatchsw"></span> developable solar land (click a plant)
+  <b>PJM gas plants — solar + data-center land screen</b>
+  <div class="row">
+    <span class="gauge" style="border-color:#1a9850"><i style="background:#1a9850;width:12px;height:12px"></i></span>
+    <span><b>Green</b> — nearby land fits enough solar to power a data center equal to the plant's
+    <b>full</b> nameplate.</span>
+  </div>
+  <div class="row">
+    <span class="gauge" style="border-color:#f57c00"><i style="background:#f57c00;width:7px;height:7px"></i></span>
+    <span><b>Orange</b> — land fits solar for only a <b>partial</b> nameplate-equivalent data center.</span>
+  </div>
+  <div style="color:#777;margin:5px 0">Ring = full nameplate · filled core = solar-powered
+    data-center load you can host · marker size &prop; nameplate MW.</div>
+  <div><span class="hatchsw"></span> developable solar land (click a plant)</div>
 </div>
 <script>
 var PLANTS = __PLANTS__;
