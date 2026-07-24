@@ -49,6 +49,7 @@ def make_map(wide: pd.DataFrame) -> None:
             "lat": round(float(r.lat), 5), "lon": round(float(r.lon), 5),
             "mw": round(float(r.nameplate_MW), 0), "cf": round(float(r.cf_ac), 3),
             "dmw": round(float(r.developable_MW), 0),
+            "umw": round(float(r.usable_solar_MW), 0),
             "darea": round(float(r.developable_area_mi2), 1),
             "h5": round(float(r.headroom_g5), 2), "h10": round(float(r.headroom_g10), 2),
             "h20": round(float(r.headroom_g20), 2), "q10": bool(r.qualifies_g10),
@@ -132,16 +133,18 @@ storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of
   <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
   <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. PJM range here
       {cf_lo:.2f}–{cf_hi:.2f}. Higher = less solar needed.</dd>
-  <dt>Solar that fits (developable)</dt><dd>Buildable solar land in the buffer × power density
-      (~{pd_mw:.0f} MW/mi²) = how much solar physically fits.</dd>
+  <dt>Developable land / usable for solar</dt><dd>Developable land × power density (~{pd_mw:.0f} MW/mi²)
+      = the solar the land could fit. But a fixed <b>150-acre parcel is reserved for the data center
+      building</b>, so <i>usable for solar</i> = (land − 150 ac) × power density. On small urban sites
+      this deduction can matter; on normal sites the solar dwarfs it.</dd>
   <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / CF × nameplate. The panels required so annual
       solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
-  <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the available solar land can
-      actually power = min(nameplate, solar&nbsp;that&nbsp;fits ÷ {C.OVERBUILD}(1−g)/CF). For green plants
-      this is the full nameplate; for red plants it's the <b>partial</b> data center you could still build.
+  <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the usable solar land can actually
+      power = min(nameplate, usable&nbsp;solar ÷ {C.OVERBUILD}(1−g)/CF). Full nameplate for green plants;
+      the <b>partial</b> data center you could still build for red ones.
       <b>The hostable-load slider filters on this.</b></dd>
-  <dt>Headroom</dt><dd>Solar that fits ÷ solar needed. <b>&ge; 1.0 = full nameplate qualifies</b>;
-      shown per gas cap.</dd>
+  <dt>Headroom</dt><dd>Usable solar (after the 150-ac DC parcel) ÷ solar needed.
+      <b>&ge; 1.0 = full nameplate qualifies</b>, exactly; shown per gas cap.</dd>
   <dt>Gas cap (g)</dt><dd>Share of annual data-center energy the gas plant may supply ({caps}).
       Lower g = cleaner but needs more solar/land.</dd>
 </dl>
@@ -310,10 +313,11 @@ PLANTS.forEach(function(p){
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
     'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
-    'Solar that <u>fits</u> (developable): <b>'+p.dmw.toLocaleString()+'</b> MW&nbsp;/&nbsp;'+p.darea.toLocaleString()+' mi&sup2;<br>'+
+    'Developable land: '+p.darea.toLocaleString()+' mi&sup2; &nbsp;(fits <b>'+p.dmw.toLocaleString()+'</b> MW of solar)<br>'+
+    'Usable for solar after 150-ac DC parcel: <b>'+p.umw.toLocaleString()+'</b> MW<br>'+
     'Solar <u>needed</u> (full load):&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
     '<span style="color:#0b6b2e">&#9654; <b>Hostable DC load</b> (solar-limited):&nbsp; g5% '+p.hl5.toLocaleString()+' &middot; g10% <b>'+p.hl10.toLocaleString()+'</b> &middot; g20% '+p.hl20.toLocaleString()+' MW</span><br>'+
-    'Headroom (fits&divide;needed):&nbsp; g5% '+p.h5.toFixed(2)+' &middot; g10% <b>'+p.h10.toFixed(2)+'</b> &middot; g20% '+p.h20.toFixed(2)+
+    'Headroom (usable&divide;needed):&nbsp; g5% '+p.h5.toFixed(2)+' &middot; g10% <b>'+p.h10.toFixed(2)+'</b> &middot; g20% '+p.h20.toFixed(2)+
     ' <span style="color:#777">(&ge;1 = full nameplate qualifies)</span><br>'+
     'Full nameplate qualifies @10%: <b>'+(p.q10?'YES':'no')+'</b>'+
     (p.hasdev?'<br><span style="color:#1a9d4d">&#9632; click marker to shade developable land</span>'

@@ -40,9 +40,9 @@ A plant that can't host a *full-nameplate* data center can usually still host a 
 
 | Gas cap | Whole-plant qualifiers (GW) | Including partial DCs (GW) |
 |---|---|---|
-| 5% | 17.5 | 42.8 |
-| 10% | 17.8 | 44.2 |
-| 20% | 18.8 | 47.5 |
+| 5% | 17.5 | 42.5 |
+| 10% | 17.8 | 43.9 |
+| 20% | 18.8 | 47.1 |
 
 ## Qualifying nameplate by state (10 km, 10% gas cap, 7 ac/MW) — vs paper Fig. 4
 
