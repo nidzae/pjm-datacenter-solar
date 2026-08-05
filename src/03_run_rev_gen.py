@@ -8,9 +8,11 @@ the SAME SAM PVWatts engine (NREL-hosted, against NSRDB TMY at each coordinate) 
 plant location. Geometry matches Spec section 4 / Phase 3:
     array_type=0 (fixed open rack), tilt=latitude, azimuth=180, dc_ac_ratio=1.3, losses=14%.
 
-CF definition: AC capacity factor = AC_energy / (AC_nameplate * 8760).
-PVWatts reports capacity_factor on the DC nameplate, so
-    AC_CF = reported_CF * dc_ac_ratio   (exact algebra; consistent with R in Spec section 3).
+CF definition (matches Spec §3, PJM ~0.15-0.18): the PVWatts-reported capacity_factor,
+which is AC_energy / (DC_nameplate * 8760). The spec calls this the "AC CF" (~0.16) and R
+uses it directly. It is NOT multiplied by the ILR — that would double-count the inverter
+ratio and make the screen ~30% too optimistic. (power_density = 7 ac/MW is on the same
+DC/panel basis, so area * power_density and R are consistent.)
 
 Output: data/interim/pjm_plants_cf.csv  (adds cf_ac per plant)
 Run:    python src/03_run_rev_gen.py
@@ -60,10 +62,13 @@ def pvwatts_cf(lat: float, lon: float, tilt: float, key: str,
             if errs:
                 raise RuntimeError(f"PVWatts errors: {errs}")
             o = d["outputs"]
-            dc_cf = o["capacity_factor"] / 100.0
+            # PVWatts "capacity_factor" = AC energy / DC nameplate / 8760. This IS the spec's
+            # "AC CF" (~0.16, numerator is AC energy) and is what R uses directly. Do NOT
+            # multiply by the ILR — that would double-count and make the screen ~30% optimistic.
+            cf_pvwatts = o["capacity_factor"] / 100.0
             rec = {
-                "dc_cf": dc_cf,
-                "ac_cf": dc_cf * C.SAM_DC_AC_RATIO,
+                "dc_cf": cf_pvwatts,
+                "ac_cf": cf_pvwatts,
                 "ac_annual_kwh": o["ac_annual"],
                 "solrad_annual": o.get("solrad_annual"),
             }
@@ -106,7 +111,9 @@ def main() -> None:
     print(f"  total unique PVWatts calls: {calls} (grid {g}°); {len(plants)-calls} plants reused a neighbor")
 
     cf = pd.DataFrame(recs)
-    plants["cf_ac"] = cf["ac_cf"].values
+    # Use the reliable PVWatts value (stored under dc_cf even in older cache entries) — this
+    # is the spec's CF used in R; robust to any legacy cached ac_cf that had the ILR baked in.
+    plants["cf_ac"] = cf["dc_cf"].values
     plants["cf_dc"] = cf["dc_cf"].values
     out_path = C.DATA_INTERIM / "pjm_plants_cf.csv"
     plants.to_csv(out_path, index=False)

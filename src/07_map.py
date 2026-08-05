@@ -86,7 +86,9 @@ def make_map(wide: pd.DataFrame) -> None:
 
 def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps, host_gw) -> str:
     pd_mw = C.POWER_DENSITY_MW_PER_MI2
-    pd_pct = (cf_lo + cf_hi) / 2 * 100      # ~mean capacity factor, % of the time panels produce
+    cf_mid = (cf_lo + cf_hi) / 2
+    pd_pct = cf_mid * 100                   # ~capacity factor, % of theoretical max panels deliver
+    solar_mult = C.OVERBUILD * 0.9 / cf_mid  # ~MW solar per MW load at g=10% (the "Nx" factor)
     return f"""
 <div class="hd"><b>&#9432; Map guide</b>
   <button class="x" onclick="document.getElementById('sidebar').classList.remove('open')">&times;</button></div>
@@ -131,8 +133,8 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
 <h3>Terms in the popup</h3>
 <p class="mut" style="margin-bottom:8px"><b>Key point:</b> a plant qualifies when the solar that <i>fits</i>
 &ge; the solar <i>needed</i> — <b>not</b> when developable MW &gt; nameplate MW. A flat 24/7 load needs
-roughly <b>6&times; its size in solar panels</b> (panels run only ~{pd_pct:.0f}% of the time, plus overbuild for
-storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of solar.</p>
+roughly <b>{solar_mult:.0f}&times; its size in solar panels</b> (panels average only ~{pd_pct:.0f}% of nameplate,
+plus overbuild for storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~{solar_mult:.0f}&nbsp;GW of solar.</p>
 <dl>
   <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
   <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. US range here
@@ -166,10 +168,14 @@ data centers that the other sites can still host, total <b>solar-limited hostabl
 
 <h3>Read with care</h3>
 <ul>
+  <li><b>Per-plant numbers here are independent and valid.</b> But nearby plants (10&nbsp;km buffers
+      overlap for ~⅔ of US plants) can share the same land, so national GW totals are an
+      <b>upper bound</b>, not additive potential.</li>
   <li>The hatch shows the <b>conservative</b> screen (all forest excluded). Including forest roughly
       doubles the land — a documented sensitivity, not shown here.</li>
   <li>Land being present ≠ water/fiber/grid capacity being available. This screens <b>land only</b>.</li>
-  <li>Capacity factor here is mildly optimistic; results are a plausibility screen, not a guarantee.</li>
+  <li>Results are a first-pass <b>plausibility</b> screen (land + energy-parity solar sizing),
+      not a feasibility guarantee — no interconnection, dispatch, storage, or cost modeling.</li>
 </ul>
 
 <h3>Data</h3>
@@ -514,12 +520,19 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
              f"**{sum(bi.get(s,0) for s in PAPER_STATE_GW):.1f}** | "
              f"**{sum(PAPER_STATE_GW.values())}** |")
 
+    L.append("\n## How to read the aggregate GW (important)\n")
+    L.append("- **Per-plant verdicts are independent and valid**; each plant is screened against "
+             "the developable land in its *own* 10 km buffer. But ~67% of US plants have a neighbor "
+             "within 20 km, so buffers overlap and the same acreage can count toward two or more "
+             "plants. The national roll-up totals above are therefore an **upper bound**, not a "
+             "strictly additive potential — de-duplicating shared land would lower them.")
     L.append("\n## Validation notes (Spec section 11)\n")
-    L.append("- **Order-of-magnitude match, forest toggle is the key lever.** The forest-"
-             "included screen (27 GW across the 5 paper states) aligns with paper Fig. 4 far "
-             "better than the conservative forest-excluded default (15 GW); VA (8.0 vs 10) and "
-             "OH (7.3 vs 12) land close. Excluding all forest is the aggressive end of the "
-             "toggle (Spec §12).")
+    _incl5 = sum(bi.get(s, 0) for s in PAPER_STATE_GW)
+    _excl5 = sum(bx.get(s, 0) for s in PAPER_STATE_GW)
+    L.append(f"- **Order-of-magnitude match, forest toggle is the key lever.** Across the 5 paper "
+             f"states the forest-included screen ({_incl5:.0f} GW) aligns with paper Fig. 4 "
+             f"({sum(PAPER_STATE_GW.values())} GW) better than the forest-excluded default "
+             f"({_excl5:.0f} GW). Excluding all forest is the aggressive end of the toggle (Spec §12).")
     L.append("- **Fig. 4 is not the same quantity as qualifying gas nameplate.** Paper Fig. 4 "
              "gives IL = 16 GW, which *exceeds* IL's entire operating gas fleet here (13.7 GW). "
              "So Fig. 4 measures a solar/load-potential, not qualifying nameplate; our lower, "
@@ -527,9 +540,11 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
     L.append("- **Residual gap (PA, IL) is plant size + terrain.** PA/IL fleets are dominated "
              "by large CCGTs whose flat 24/7 load needs more solar than fits within 10 km; "
              "single-axis tracking or a larger buffer would expand the set.")
-    L.append("- CF here (~0.19 AC, 1.3 ILR) is mildly optimistic vs the spec's 0.16 anchor; "
-             "a lower CF raises R and shrinks the qualifying set. Solar land dwarfs the "
-             "150-acre DC parcel, so the area test binds on solar.")
+    L.append(f"- CF here is {wide.cf_ac.min():.2f}–{wide.cf_ac.max():.2f} (mean {wide.cf_ac.mean():.2f}), "
+             "the PVWatts capacity_factor the spec uses in R directly (Spec §3 anchor ~0.16); NOT "
+             "multiplied by the inverter ratio. For the national run CF is snapped to a 0.25° grid "
+             "(per-plant error ≲0.01). On small urban sites the 150-acre DC parcel can bind the "
+             "verdict (usable = land − parcel).")
     (C.OUTPUTS / "summary.md").write_text("\n".join(L) + "\n")
     print("Wrote outputs/summary.md")
 

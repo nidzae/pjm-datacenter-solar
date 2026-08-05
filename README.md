@@ -16,9 +16,9 @@ Adapted from Chojkiewicz et al., *Utilizing Noncoincident Needs to Site Data Cen
 Solar+Storage at Existing Gas Plants* (Energy Institute at Haas **WP 356**, Feb 2026 —
 [read the paper](https://haas.berkeley.edu/wp-content/uploads/archive/WP356.pdf)). The
 paper's per-plant coordinates/land polygons are not published, so the land screen is rebuilt
-here. **Deliberate difference from the paper:** we evaluate *all* PJM gas plants as
-candidates for *brand-new* data centers (the paper's "nationwide potential" mode, its
-Fig. 4), not the 68 sites near already-proposed data centers.
+here. **Deliberate difference from the paper:** we evaluate *all* US gas plants as candidates
+for *brand-new* data centers (the paper's "nationwide potential" mode, its Fig. 4), not the
+68 sites near already-proposed data centers.
 
 This is a plausibility screen — **not** a cost or dispatch model. No LCOE, no hourly
 optimization, no storage sizing (all deferred by design).
@@ -33,25 +33,26 @@ data-center load at 10 km buffer, 7 ac/MW:
 
 | Gas cap | Forest EXCLUDED (conservative) | Forest INCLUDED (less aggressive) |
 |---|---|---|
-| 5%  | 789 plants · 153 GW | 954 plants · 226 GW |
-| 10% | 802 plants · 160 GW | 963 plants · 233 GW |
-| 20% | 819 plants · 169 GW | 990 plants · 254 GW |
+| 5%  | 734 plants · 127 GW | 873 plants · 178 GW |
+| 10% | 744 plants · 132 GW | 885 plants · 186 GW |
+| 20% | 773 plants · 146 GW | 922 plants · 206 GW |
 
-(PJM subset for reference: 91 plants / 18 GW at 10%, forest-excluded.) Nationally the hit-rate is
-much higher than PJM — sunnier states need less solar per MW of load, and Western/rural plants
-have more open land.
+(PJM subset for reference: 79 plants / 13 GW at 10%, forest-excluded.) Nationally the hit-rate is
+higher than PJM — sunnier states need less solar per MW of load, and Western/rural plants have more
+open land.
 
 **Whole-plant vs partial opportunity.** The counts above require a plant to host a *full-nameplate*
 data center. But a plant that can't fit the full load can still host a *smaller* one matched to its
 available solar land (hostable load = `min(nameplate, headroom × nameplate)`). Summing those partials,
-total **solar-limited hostable data-center load rises from ~160 GW (whole-plant, 10%) to ~268 GW** —
+total **solar-limited hostable data-center load rises from ~132 GW (whole-plant, 10%) to ~240 GW** —
 the map's popups and its hostable-load slider expose this per plant.
 
-**Forest exclusion is the dominant sensitivity** (heavily-forested VA/PA lose the most).
-By-state, the **forest-included** screen aligns with paper Fig. 4 (VA 8.0 vs 10, OH 7.3 vs
-12 GW); totals are the same order of magnitude but lower, as expected — Fig. 4 measures a
-solar/load potential, not qualifying gas nameplate (its IL value, 16 GW, even exceeds IL's
-whole gas fleet here). See `outputs/summary.md`, `outputs/pjm_sites.csv`, `outputs/pjm_map.html`.
+**Forest exclusion is the dominant sensitivity** (heavily-forested Eastern plants lose the most).
+For the PJM subset the by-state qualifying nameplate lands in the same order of magnitude as the
+paper's Fig. 4 (PA/OH/IL/VA/NJ) — see `outputs/summary.md` for the live comparison. Note Fig. 4
+measures a solar/load potential, not qualifying gas nameplate (its IL value, 16 GW, even exceeds
+IL's whole gas fleet), so an exact match isn't expected. See `outputs/summary.md`,
+`outputs/pjm_sites.csv`, `outputs/pjm_map.html`.
 
 ---
 
@@ -60,19 +61,24 @@ whole gas fleet here). See `outputs/summary.md`, `outputs/pjm_sites.csv`, `outpu
 For each plant `p` and gas cap `g ∈ {0.05, 0.10, 0.20}`:
 
 ```
-R          = OVERBUILD * (1 - g) / CF_p           # MW-AC solar per MW load; OVERBUILD = 1.3
-solar_req  = R * nameplate_MW                      # MW-AC solar required
-land_req   = solar_req / power_density             # mi² of solar land
-dev_MW     = developable_area * power_density       # from the land screen
-qualifies  = dev_MW >= solar_req AND developable_area >= land_req + dc_land
-headroom   = dev_MW / solar_req
+R            = OVERBUILD * (1 - g) / CF_p            # MW solar per MW load; OVERBUILD = 1.3
+solar_req    = R * nameplate_MW                       # MW solar required
+land_req     = solar_req / power_density              # mi² of solar land
+usable_solar = max(0, developable_area - dc_parcel) * power_density   # solar after the DC parcel
+qualifies    = usable_solar >= solar_req              # ⟺ developable_area >= land_req + dc_parcel
+headroom     = usable_solar / solar_req               # ≥ 1  ⟺  qualifies (exactly)
+hostable     = min(nameplate, headroom * nameplate)   # data-center load the land can power
 ```
+
+`CF_p` is the PVWatts capacity_factor (AC energy ÷ DC nameplate, ~0.11–0.22, the spec's "AC CF"
+≈ 0.16) — used in `R` directly, **not** multiplied by the inverter ratio. `power_density` (7 ac/MW)
+is on the same DC/panel basis, so `area × power_density` and `R` are consistent.
 
 **Locked parameters** (`src/config.py`):
 
 | Parameter | Value |
 |---|---|
-| Region | EIA Balancing Authority Code = `PJM` |
+| Region | **US lower-48** (all balancing authorities; AK/HI excluded) |
 | Gas caps `g` | 0.05, 0.10, 0.20 |
 | Overbuild multiplier | **1.3** (battery losses + low-sun ride-through; calibrated, not derived) |
 | Buffer radius | 10 km primary, 5 km sensitivity |
@@ -102,12 +108,14 @@ Run order: `01 → 03 → 02 → 04 → 05 → 06 → 07 → 08`.
 
 ## Interactive map (`outputs/pjm_map.html`)
 
-A self-contained Leaflet page (base HTML ~55 KB; open it in any browser — needs internet for
-the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
+A self-contained Leaflet page (base HTML ~0.4 MB embedding 1,277 plants; open it in any browser —
+needs internet for the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
 
 - **Search** (top center) — type a place name (geocoded via OpenStreetMap Nominatim) or raw
   `lat, lon` to drop a pin and zoom there.
-- **Markers** — every PJM gas plant. **Green = qualifies** (10% gas cap), **red = does not**;
+- **Markers** — every US gas plant, drawn as a gauge: **outline ring = full nameplate**, **filled
+  core = hostable data-center load** (core area ∝ hostable ÷ nameplate). **Green = full nameplate
+  qualifies** (10% gas cap), **orange = only a partial data center fits**;
   **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/mi², headroom
   per gas cap).
 - **Click-to-hatch** — clicking a plant draws its 10 km buffer and shades the **developable
@@ -119,7 +127,7 @@ the base tiles). Keep the `outputs/dev_tiles/` folder next to it.
   on the shaded land.
 - **Popup** — for each plant: nameplate (= the 24/7 load), AC CF, solar that *fits* vs solar
   *needed*, and the **hostable DC load** (the solar-limited data-center size it can actually
-  power — full nameplate for green, partial for red), plus headroom per gas cap.
+  power — full nameplate for green, partial for orange), plus headroom per gas cap.
 - **Hostable-load range slider** (top-left) — filter to plants that can host a data center in a
   given MW band, using the **solar-limited hostable load** (partial capacity), not full
   nameplate; *reset* restores the full range.
@@ -180,9 +188,16 @@ PAD-US GAP status 1/2/3. Developable = barren, shrub, grassland, pasture, cultiv
 - **`R` is a heuristic, optimistic before the 1.3× fix.** Energy parity ignores storage
   losses and low-sun overbuild; 1.3× is a calibrated correction, not a derived value.
   Results are a plausibility screen, not a feasibility guarantee.
-- **CF is mildly optimistic** here (~0.19 AC vs spec's 0.16 anchor) due to the 1.3 ILR
-  definition; lower CF would raise `R` ~15–20% and shrink the qualifying set. Reported as
-  a sensitivity axis.
+- **Aggregate GW can double-count shared land.** Each plant is screened against the land within
+  its *own* 10 km buffer, independently. 67% of US plants have a neighbor within 20 km, so their
+  buffers overlap and the same acreage may count toward two or more plants. **Per-plant verdicts
+  and hostable loads (the map popups) are unaffected and valid**, but the national roll-ups
+  (~160 GW whole-plant, ~268 GW with partials at 10%) are an **upper bound**, not a strictly
+  additive potential. De-duplicating overlapping buffers would lower the aggregate.
+- **Capacity factor** is the PVWatts `capacity_factor` (0.11–0.22, mean ~0.17, Southwest highest;
+  the spec's ~0.16 "AC CF" used in `R` directly, **not** ×ILR). It is snapped to a 0.25° (~17 mi)
+  grid for the national run (per-plant error ≲0.01, negligible). Fixed-tilt is assumed; single-axis
+  tracking would raise CF, lower `R`, and expand the qualifying set.
 - **Presence ≠ headroom** for fiber and water (Phase 8 flags never gate qualification).
 - **Transmission line capacity is out of scope** — nameplate is the interconnection proxy,
   consistent with the paper. Enabling mechanism = **surplus interconnection service (SIS)**;
