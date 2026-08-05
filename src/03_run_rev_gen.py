@@ -85,14 +85,25 @@ def main() -> None:
     cache = _load_cache()
     recs = []
     t0 = time.time()
+    calls = 0
+    g = C.CF_GRID_DEG
     for i, row in plants.iterrows():
-        r = pvwatts_cf(row.lat, row.lon, row.lat, key, cache)
+        # snap to the CF grid so nearby plants share one PVWatts call (CF is smooth); keeps
+        # a national run under the 1000 req/hr key limit. tilt = snapped latitude.
+        glat = round(row.lat / g) * g if g else row.lat
+        glon = round(row.lon / g) * g if g else row.lon
+        ckey = f"{glat:.4f},{glon:.4f},{glat:.2f}"
+        miss = ckey not in cache
+        r = pvwatts_cf(glat, glon, glat, key, cache)
         recs.append(r)
-        if (i + 1) % 25 == 0:
-            CACHE.write_text(json.dumps(cache))
-            print(f"  {i+1}/{len(plants)} plants  ({time.time()-t0:.0f}s)")
-        time.sleep(0.15)  # polite pacing under 1000 req/hr
+        if miss:
+            calls += 1
+            time.sleep(0.15)  # polite pacing only on real API calls
+            if calls % 100 == 0:
+                CACHE.write_text(json.dumps(cache))
+                print(f"  {i+1}/{len(plants)} plants, {calls} unique CF calls ({time.time()-t0:.0f}s)")
     CACHE.write_text(json.dumps(cache))
+    print(f"  total unique PVWatts calls: {calls} (grid {g}°); {len(plants)-calls} plants reused a neighbor")
 
     cf = pd.DataFrame(recs)
     plants["cf_ac"] = cf["ac_cf"].values
@@ -101,7 +112,7 @@ def main() -> None:
     plants.to_csv(out_path, index=False)
 
     print(f"\nWrote {out_path}")
-    print(f"AC capacity factor across {len(plants)} PJM plants:")
+    print(f"AC capacity factor across {len(plants)} plants:")
     print(f"  min {plants.cf_ac.min():.3f}  mean {plants.cf_ac.mean():.3f}  "
           f"max {plants.cf_ac.max():.3f}  (spec sanity ~{C.CF_REGIONAL_SANITY})")
     print("  by state (mean AC CF):")

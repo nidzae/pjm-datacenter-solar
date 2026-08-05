@@ -1,6 +1,6 @@
-# PJM Gas-Plant / Solar / Data-Center Land Screen — Summary
+# US Gas-Plant / Solar / Data-Center Land Screen — Summary
 
-Fleet: **199 operating PJM gas plants**, **94.4 GW** total nameplate.
+Fleet: **1277 operating US (lower-48) gas plants**, **475.5 GW** total nameplate, across 48 states and 50 balancing authorities.
 
 Parameters: overbuild=1.3, power density default 91 MW/mi² (7 ac/MW), DC parcel 150 acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².
 
@@ -8,31 +8,31 @@ Parameters: overbuild=1.3, power density default 91 MW/mi² (7 ac/MW), DC parcel
 
 | Buffer | Gas cap | Plants qualifying | Hostable load (GW) |
 |---|---|---|---|
-| 10 km | 5% | 90 | 17.5 |
-| 10 km | 10% | 91 | 17.8 |
-| 10 km | 20% | 93 | 18.8 |
-| 5 km | 5% | 40 | 1.5 |
-| 5 km | 10% | 41 | 1.5 |
-| 5 km | 20% | 45 | 2.1 |
+| 10 km | 5% | 789 | 152.6 |
+| 10 km | 10% | 802 | 159.8 |
+| 10 km | 20% | 819 | 169.1 |
+| 5 km | 5% | 441 | 36.6 |
+| 5 km | 10% | 447 | 37.3 |
+| 5 km | 20% | 470 | 43.2 |
 
 ## Qualifying plants & hostable data-center load (GW) — forest INCLUDED (less aggressive)
 
 | Buffer | Gas cap | Plants qualifying | Hostable load (GW) |
 |---|---|---|---|
-| 10 km | 5% | 130 | 32.4 |
-| 10 km | 10% | 131 | 33.4 |
-| 10 km | 20% | 135 | 37.9 |
-| 5 km | 5% | 55 | 2.3 |
-| 5 km | 10% | 55 | 2.3 |
-| 5 km | 20% | 59 | 3.1 |
+| 10 km | 5% | 954 | 226.1 |
+| 10 km | 10% | 963 | 233.4 |
+| 10 km | 20% | 990 | 253.7 |
+| 5 km | 5% | 526 | 44.7 |
+| 5 km | 10% | 537 | 47.3 |
+| 5 km | 20% | 560 | 54.7 |
 
 ## Power-density sensitivity (10 km, 10% gas cap, forest excluded)
 
 | acres/MW | MW/mi² | Plants qualifying | Hostable load (GW) |
 |---|---|---|---|
-| 5 | 128.0 | 101 | 23.0 |
-| 7 | 91.4 | 91 | 17.8 |
-| 8 | 80.0 | 84 | 14.7 |
+| 5 | 128.0 | 865 | 196.7 |
+| 7 | 91.4 | 802 | 159.8 |
+| 8 | 80.0 | 773 | 146.0 |
 
 ## Hostable load — whole-plant vs including partial data centers (10 km, forest excl.)
 
@@ -40,25 +40,62 @@ A plant that can't host a *full-nameplate* data center can usually still host a 
 
 | Gas cap | Whole-plant qualifiers (GW) | Including partial DCs (GW) |
 |---|---|---|
-| 5% | 17.5 | 42.5 |
-| 10% | 17.8 | 43.9 |
-| 20% | 18.8 | 47.1 |
+| 5% | 152.6 | 262.2 |
+| 10% | 159.8 | 268.1 |
+| 20% | 169.1 | 281.2 |
 
 ## Qualifying nameplate by state (10 km, 10% gas cap, 7 ac/MW) — vs paper Fig. 4
 
 | State | Forest excl. GW | Forest incl. GW | Paper Fig. 4 (GW) |
 |---|---|---|---|
+| TX | 33.9 | 38.3 | — |
+| CA | 15.7 | 15.8 | — |
+| AZ | 10.7 | 10.7 | — |
+| OK | 4.4 | 10.4 | — |
+| GA | 2.5 | 10.2 | — |
+| IL | 9.1 | 10.0 | 16 |
+| MS | 2.3 | 8.7 | — |
 | VA | 1.9 | 8.0 | 10 |
+| LA | 4.5 | 7.9 | — |
 | OH | 5.1 | 7.3 | 12 |
-| IL | 5.2 | 6.2 | 16 |
+| FL | 4.1 | 6.8 | — |
+| WI | 6.2 | 6.2 | — |
+| IN | 5.2 | 6.1 | — |
+| CO | 6.1 | 6.1 | — |
+| NC | 1.0 | 5.9 | — |
+| MO | 5.8 | 5.8 | — |
+| AL | 0.5 | 5.5 | — |
+| MI | 4.5 | 5.0 | — |
 | PA | 2.4 | 4.1 | 17 |
+| NY | 1.8 | 4.0 | — |
 | MD | 0.4 | 3.9 | — |
+| MN | 3.7 | 3.7 | — |
+| AR | 1.6 | 3.6 | — |
+| SC | 0.5 | 3.6 | — |
+| IA | 3.5 | 3.5 | — |
+| TN | 2.7 | 3.4 | — |
+| MA | 0.0 | 3.3 | — |
+| OR | 3.0 | 3.0 | — |
+| KS | 2.9 | 2.9 | — |
+| NM | 2.5 | 2.5 | — |
+| WA | 0.8 | 2.4 | — |
+| NE | 1.6 | 1.6 | — |
+| ME | 0.0 | 1.6 | — |
+| SD | 1.5 | 1.5 | — |
 | NJ | 0.4 | 1.5 | 6 |
-| IN | 1.0 | 1.0 | — |
+| KY | 1.2 | 1.4 | — |
+| ID | 1.2 | 1.2 | — |
+| UT | 1.1 | 1.1 | — |
+| NV | 0.9 | 0.9 | — |
+| RI | 0.0 | 0.8 | — |
 | DE | 0.8 | 0.8 | — |
-| KY | 0.6 | 0.6 | — |
+| CT | 0.2 | 0.8 | — |
+| ND | 0.7 | 0.7 | — |
+| WY | 0.4 | 0.4 | — |
+| MT | 0.4 | 0.4 | — |
 | DC | 0.0 | 0.0 | — |
-| **Total (5 paper states)** | **15.0** | **27.0** | **61** |
+| NH | 0.0 | 0.0 | — |
+| **Total (5 paper states)** | **18.8** | **30.8** | **61** |
 
 ## Validation notes (Spec section 11)
 

@@ -31,7 +31,13 @@ EIA860_ZIP_URL = "https://www.eia.gov/electricity/data/eia860/xls/eia8602024.zip
 # --------------------------------------------------------------------------------------
 # Region filter (Spec section 4)
 # --------------------------------------------------------------------------------------
-REGION_BA_CODE = "PJM"          # EIA Balancing Authority Code
+# "US" = all lower-48 gas plants (national screen). Or a single EIA Balancing Authority
+# Code (e.g. "PJM") to restrict. Started as a PJM screen; now nationwide.
+REGION_BA_CODE = "US"
+EXCLUDE_STATES = {"AK", "HI"}   # separate NLCD/DEM products + isolated grids -> out of scope
+# Snap plant coords to this grid (deg) for the PVWatts CF lookup so nearby plants share one
+# call (CF is smooth; keeps national runs under the 1000 req/hr key limit). 0 = per-plant.
+CF_GRID_DEG = 0.25
 
 # PJM footprint bounding box (lon/lat, EPSG:4326) for NSRDB / exclusion extent.
 # Generous box covering PJM states (IL/IN/OH/KY/WV/VA/NC-tip/MD/DE/NJ/PA/MI-lp/DC/TN-tip).

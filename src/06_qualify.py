@@ -28,6 +28,7 @@ import config as C  # noqa: E402
 
 def main() -> None:
     p = pd.read_csv(C.DATA_PROCESSED / "pjm_plants_with_land.csv")
+    p["ba"] = p["ba"].fillna("N/A")   # keep BA-less plants (pivot index drops NaN)
 
     long_rows = []
     for r in p.itertuples(index=False):
@@ -49,6 +50,7 @@ def main() -> None:
                         qual = usable_mw >= solar_req       # == area >= land_req + dc_land
                         long_rows.append({
                             "plant_code": r.plant_code, "name": r.name, "state": r.state,
+                            "ba": r.ba,
                             "lat": r.lat, "lon": r.lon, "nameplate_MW": r.nameplate_MW_total,
                             "cf_ac": r.cf_ac, "buffer_km": buf, "forest": forest,
                             "acres_per_MW": apm, "power_density_MW_mi2": pd_mw, "gas_cap": g,
@@ -67,7 +69,7 @@ def main() -> None:
                 (np.isclose(long.acres_per_MW, C.ACRES_PER_MW)) &
                 (long.forest == default_forest)].copy()
     wide = base.pivot_table(
-        index=["plant_code", "name", "state", "lat", "lon", "nameplate_MW", "cf_ac",
+        index=["plant_code", "name", "state", "ba", "lat", "lon", "nameplate_MW", "cf_ac",
                "developable_area_mi2", "developable_MW", "usable_solar_MW"],
         columns="gas_cap",
         values=["R", "solar_req_MW", "land_req_mi2", "qualifies", "headroom"],

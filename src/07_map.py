@@ -45,7 +45,7 @@ def make_map(wide: pd.DataFrame) -> None:
     for r in wide.itertuples(index=False):
         code = int(r.plant_code)
         plants.append({
-            "code": code, "name": r.name, "state": r.state,
+            "code": code, "name": r.name, "state": r.state, "ba": str(r.ba),
             "lat": round(float(r.lat), 5), "lon": round(float(r.lon), 5),
             "mw": round(float(r.nameplate_MW), 0), "cf": round(float(r.cf_ac), 3),
             "dmw": round(float(r.developable_MW), 0),
@@ -91,8 +91,8 @@ def _sidebar_html(n, fleet_gw, n_qual, qual_gw, cf_lo, cf_hi, caps, host_gw) -> 
 <div class="hd"><b>&#9432; Map guide</b>
   <button class="x" onclick="document.getElementById('sidebar').classList.remove('open')">&times;</button></div>
 <div class="bd">
-<p>Every <b>operating natural-gas power plant in PJM</b> ({n} plants, {fleet_gw:.0f} GW total) is
-screened for one question: is there enough developable land within <b>10&nbsp;km</b> to build a new
+<p>Every <b>operating natural-gas power plant in the US</b> (lower-48: {n} plants, {fleet_gw:.0f} GW
+total) is screened for one question: is there enough developable land within <b>10&nbsp;km</b> to build a new
 <b>data center</b> <i>plus</i> enough new <b>solar</b> to serve a flat 24/7 load equal to the plant's
 capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
 <p class="mut">A first-pass land-availability screen — not a cost, dispatch, or interconnection study.</p>
@@ -102,6 +102,8 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
   <li><b>Search</b> (top) for a place name or <code>lat, lon</code> to drop a pin and zoom there.</li>
   <li><b>Click any plant</b> to draw its 10&nbsp;km circle and shade the land that could host solar.</li>
   <li>Use the <b>Street / Satellite</b> switch (top-right) to see what's actually on that land.</li>
+  <li>Pick a <b>Region (ISO/RTO)</b> from the dropdown (top-left) to focus on one grid operator
+      (PJM, MISO, CAISO, ERCOT…), or keep <i>All regions</i>.</li>
   <li>Drag the <b>Hostable-load filter</b> sliders (top-left) to show only plants that can host a
       data-center of a given size (MW). This uses each plant's <i>solar-limited hostable load</i>
       (the partial capacity that fits), not full nameplate; <i>reset</i> clears it.</li>
@@ -133,8 +135,8 @@ roughly <b>6&times; its size in solar panels</b> (panels run only ~{pd_pct:.0f}%
 storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~6&nbsp;GW of solar.</p>
 <dl>
   <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
-  <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. PJM range here
-      {cf_lo:.2f}–{cf_hi:.2f}. Higher = less solar needed.</dd>
+  <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. US range here
+      {cf_lo:.2f}–{cf_hi:.2f} (sunnier Southwest highest). Higher = less solar needed.</dd>
   <dt>Developable land / usable for solar</dt><dd>Developable land × power density (~{pd_mw:.0f} MW/mi²)
       = the solar the land could fit. But a fixed <b>150-acre parcel is reserved for the data center
       building</b>, so <i>usable for solar</i> = (land − 150 ac) × power density. On small urban sites
@@ -179,7 +181,7 @@ Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted from Energy Institute at 
 
 _MAP_TEMPLATE = """<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PJM gas-plant solar + data-center land screen</title>
+<title>US gas-plant solar + data-center land screen</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>/*__PATTERN_JS__*/</script>
@@ -249,6 +251,8 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 </div>
 <button id="guideBtn" onclick="document.getElementById('sidebar').classList.add('open')">&#9432; Guide</button>
 <div id="filterBox">
+  <div class="flabel">Region (ISO/RTO)</div>
+  <select id="baSel" onchange="applyFilter()" style="width:100%;margin-bottom:7px;padding:4px"></select>
   <div class="flabel">Hostable load filter (MW)</div>
   <div class="frow"><span>min</span><input type="range" id="fmin"></div>
   <div class="frow"><span>max</span><input type="range" id="fmax"></div>
@@ -257,7 +261,7 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div id="sidebar">__SIDEBAR__</div>
 <div class="legend info">
-  <b>PJM gas plants — solar + data-center land screen</b>
+  <b>US gas plants — solar + data-center land screen</b>
   <div class="row">
     <span class="gauge" style="border-color:#1a9850"><i style="background:#1a9850;width:12px;height:12px"></i></span>
     <span><b>Green</b> — nearby land fits enough solar to power a data center equal to the plant's
@@ -275,7 +279,7 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 var PLANTS = __PLANTS__;
 // SVG renderer required: leaflet.pattern draws the hatch as an SVG <pattern> def,
 // which a canvas renderer would silently ignore.
-var map = L.map('map',{renderer:L.svg()}).setView([39.5,-80.0],6);
+var map = L.map('map',{renderer:L.svg()}).setView([39.5,-96.0],5);
 var streets = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:20,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'});
 var satellite = L.tileLayer(
@@ -348,8 +352,15 @@ PLANTS.forEach(function(p){
              :'<br><i>no developable land within 10&nbsp;km</i>')+'</div>';
   m.bindPopup(html,{maxWidth:360});
   m.on('click',function(){showDev(p);});
-  markers.push({m:m, mw:p.mw, hl:p.hl10, code:p.code});
+  markers.push({m:m, mw:p.mw, hl:p.hl10, code:p.code, ba:p.ba});
 });
+
+// Region (ISO/RTO) dropdown, ordered by plant count.
+var baSel=document.getElementById('baSel');
+var baCount={}; markers.forEach(function(o){ baCount[o.ba]=(baCount[o.ba]||0)+1; });
+var baList=Object.keys(baCount).sort(function(a,b){return baCount[b]-baCount[a];});
+baSel.innerHTML='<option value="ALL">All regions ('+markers.length+')</option>'+
+  baList.map(function(b){return '<option value="'+b+'">'+b+' ('+baCount[b]+')</option>';}).join('');
 
 // Hostable-load range filter: show only plants whose solar-limited hostable DC load (at 10%
 // gas) is within [min, max] MW. This uses the PARTIAL capacity, not full nameplate.
@@ -365,9 +376,10 @@ function applyFilter(){
     if(document.activeElement===fmin){ hi=lo; fmax.value=hi; }
     else { lo=hi; fmin.value=lo; }
   }
+  var ba=baSel.value;
   var shown=0;
   markers.forEach(function(o){
-    var show = o.hl>=lo && o.hl<=hi;
+    var show = o.hl>=lo && o.hl<=hi && (ba==='ALL' || o.ba===ba);
     if(show){ if(!map.hasLayer(o.m)) o.m.addTo(map); shown++; }
     else if(map.hasLayer(o.m)) map.removeLayer(o.m);
   });
@@ -440,9 +452,10 @@ document.addEventListener('keydown',function(e){
 
 def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
     L = []
-    L.append("# PJM Gas-Plant / Solar / Data-Center Land Screen — Summary\n")
-    L.append(f"Fleet: **{len(wide)} operating PJM gas plants**, "
-             f"**{wide.nameplate_MW.sum()/1000:.1f} GW** total nameplate.\n")
+    L.append("# US Gas-Plant / Solar / Data-Center Land Screen — Summary\n")
+    L.append(f"Fleet: **{len(wide)} operating US (lower-48) gas plants**, "
+             f"**{wide.nameplate_MW.sum()/1000:.1f} GW** total nameplate, across "
+             f"{wide.state.nunique()} states and {wide.ba.nunique()} balancing authorities.\n")
     L.append(f"Parameters: overbuild={C.OVERBUILD}, power density default "
              f"{C.POWER_DENSITY_MW_PER_MI2:.0f} MW/mi² ({C.ACRES_PER_MW:.0f} ac/MW), "
              f"DC parcel {C.DC_LAND_ACRES:.0f} acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².\n")

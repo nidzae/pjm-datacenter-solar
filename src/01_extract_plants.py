@@ -90,8 +90,11 @@ def main() -> None:
     gen = load_generators()
     plant = load_plants()
 
-    # Restrict to PJM plants, then join units.
-    pjm_plant = plant[plant["Balancing Authority Code"] == C.REGION_BA_CODE].copy()
+    # Restrict to the target region, then join units.
+    if C.REGION_BA_CODE in (None, "US", "ALL"):
+        pjm_plant = plant[~plant["State"].isin(C.EXCLUDE_STATES)].copy()   # all lower-48
+    else:
+        pjm_plant = plant[plant["Balancing Authority Code"] == C.REGION_BA_CODE].copy()
     gen_pjm = gen[gen["Plant Code"].isin(pjm_plant["Plant Code"])].copy()
 
     # Aggregate nameplate to plant level, keeping peaker vs CCGT split.
@@ -132,8 +135,9 @@ def main() -> None:
 
     # ---- Report + §11 validation ----
     total_gw = out["nameplate_MW_total"].sum() / 1000.0
+    region = "US (lower-48)" if C.REGION_BA_CODE in (None, "US", "ALL") else C.REGION_BA_CODE
     print(f"\nWrote {out_path}")
-    print(f"PJM operating gas plants: {len(out)}   total nameplate: {total_gw:,.1f} GW")
+    print(f"{region} operating gas plants: {len(out)}   total nameplate: {total_gw:,.1f} GW")
     print(f"  peaker (GT):   {out['nameplate_MW_peaker'].sum()/1000:,.1f} GW")
     print(f"  ccgt (CT/CA/CS/CC): {out['nameplate_MW_ccgt'].sum()/1000:,.1f} GW")
     print("\nBy state (nameplate GW):")

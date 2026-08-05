@@ -182,7 +182,7 @@ def main() -> None:
 
     force = "--force" in sys.argv
     argv = [a for a in sys.argv[1:] if a != "--force"]
-    plants = pd.read_csv(C.DATA_INTERIM / "pjm_plants_cf.csv")
+    plants = pd.read_csv(C.DATA_INTERIM / "pjm_gas_plants.csv")   # Phase 1 output (no CF needed)
     if argv:
         codes = {int(a) for a in argv}
         plants = plants[plants.plant_code.isin(codes)]

@@ -1,5 +1,9 @@
 {
-  "region_ba": "PJM",
+  "region_ba": "US",
+  "region": "US (lower-48, all balancing authorities)",
+  "exclude_states": ["AK", "HI"],
+  "cf_grid_deg": 0.25,
+  "n_plants": 1277,
   "gas_caps": [
     0.05,
     0.1,

@@ -1,14 +1,16 @@
-# PJM Gas-Plant / Solar / Data-Center Land Screen
+# US Gas-Plant / Solar / Data-Center Land Screen
 
 ### 🌐 Live interactive map → **https://nidzae.github.io/pjm-datacenter-solar/**
 
 Click any plant to shade its developable solar land; toggle satellite imagery; search a place
-or coordinates; filter by hostable data-center load. See [Interactive map](#interactive-map-outputspjm_maphtml) below.
+or coordinates; filter by region (ISO/RTO) and by hostable data-center load.
+See [Interactive map](#interactive-map-outputspjm_maphtml) below.
 
-A first-pass GIS **feasibility screen**: for every operating natural-gas power plant in the
-PJM region, is there enough developable land within a short radius to build (a) a new data
-center and (b) enough new solar to serve a flat 24/7 load equal to the plant's nameplate
-capacity, with the existing gas plant supplying only **5% / 10% / 20%** backup?
+A first-pass GIS **feasibility screen** over **every operating natural-gas power plant in the
+lower-48 US** (1,277 plants, ~476 GW): is there enough developable land within a short radius
+to build (a) a new data center and (b) enough new solar to serve a flat 24/7 load equal to the
+plant's nameplate capacity, with the existing gas plant supplying only **5% / 10% / 20%**
+backup? *(Started as a PJM-only screen — hence the repo name — now nationwide.)*
 
 Adapted from Chojkiewicz et al., *Utilizing Noncoincident Needs to Site Data Centers with
 Solar+Storage at Existing Gas Plants* (Energy Institute at Haas **WP 356**, Feb 2026 —
@@ -25,19 +27,24 @@ optimization, no storage sizing (all deferred by design).
 
 ## Results at a glance
 
-Fleet: **199 operating PJM gas plants, 94.4 GW** (30.5 GW simple-cycle peakers, 64.0 GW
-combined-cycle). Qualifying plants and hostable data-center load at 10 km buffer, 7 ac/MW:
+Fleet: **1,277 operating US (lower-48) gas plants, 476 GW** (153 GW simple-cycle peakers, 323 GW
+combined-cycle), across 48 states and 50 balancing authorities. Qualifying plants and hostable
+data-center load at 10 km buffer, 7 ac/MW:
 
 | Gas cap | Forest EXCLUDED (conservative) | Forest INCLUDED (less aggressive) |
 |---|---|---|
-| 5%  | 90 plants · 17.5 GW | 130 plants · 32.4 GW |
-| 10% | 91 plants · 17.8 GW | 131 plants · 33.4 GW |
-| 20% | 93 plants · 18.8 GW | 135 plants · 37.9 GW |
+| 5%  | 789 plants · 153 GW | 954 plants · 226 GW |
+| 10% | 802 plants · 160 GW | 963 plants · 233 GW |
+| 20% | 819 plants · 169 GW | 990 plants · 254 GW |
+
+(PJM subset for reference: 91 plants / 18 GW at 10%, forest-excluded.) Nationally the hit-rate is
+much higher than PJM — sunnier states need less solar per MW of load, and Western/rural plants
+have more open land.
 
 **Whole-plant vs partial opportunity.** The counts above require a plant to host a *full-nameplate*
 data center. But a plant that can't fit the full load can still host a *smaller* one matched to its
 available solar land (hostable load = `min(nameplate, headroom × nameplate)`). Summing those partials,
-total **solar-limited hostable data-center load rises from ~17.8 GW (whole-plant, 10%) to ~44 GW** —
+total **solar-limited hostable data-center load rises from ~160 GW (whole-plant, 10%) to ~268 GW** —
 the map's popups and its hostable-load slider expose this per plant.
 
 **Forest exclusion is the dominant sensitivity** (heavily-forested VA/PA lose the most).
