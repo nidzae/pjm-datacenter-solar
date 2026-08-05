@@ -109,7 +109,9 @@ capacity, with the gas plant only covering <b>{caps}</b> backup?</p>
   <li>Drag the <b>Hostable-load filter</b> sliders (top-left) to show only plants that can host a
       data-center of a given size (MW). This uses each plant's <i>solar-limited hostable load</i>
       (the partial capacity that fits), not full nameplate; <i>reset</i> clears it.</li>
-  <li>Hover/click a marker for its <b>popup</b> with the numbers below.</li>
+  <li>Hover/click a marker for its <b>popup</b> with the numbers below, plus links to the
+      <b>site</b> (Google Maps), the plant's <b>EIA record</b>, the source <b>paper</b>, and full
+      <b>data sources</b>.</li>
 </ul>
 
 <h3>Map symbols</h3>
@@ -194,6 +196,8 @@ _MAP_TEMPLATE = """<!DOCTYPE html>
 <style>
   html,body{margin:0;height:100%} #map{width:100%;height:100vh}
   .info{font:13px/1.4 -apple-system,Segoe UI,sans-serif}
+  .plinks{margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#888}
+  .plinks a{color:#0b6b2e;text-decoration:none} .plinks a:hover{text-decoration:underline}
   .legend{position:absolute;bottom:24px;left:24px;z-index:1000;background:#fff;max-width:300px;
     padding:10px 14px;border:1px solid #bbb;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
   .legend .row{display:flex;gap:7px;align-items:flex-start;margin:5px 0}
@@ -355,7 +359,13 @@ PLANTS.forEach(function(p){
     ' <span style="color:#777">(&ge;1 = full nameplate qualifies)</span><br>'+
     'Full nameplate qualifies @10%: <b>'+(p.q10?'YES':'no')+'</b>'+
     (p.hasdev?'<br><span style="color:#1a9d4d">&#9632; click marker to shade developable land</span>'
-             :'<br><i>no developable land within 10&nbsp;km</i>')+'</div>';
+             :'<br><i>no developable land within 10&nbsp;km</i>')+
+    '<div class="plinks">&#128279; '+
+      '<a target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lon+'">site</a> &middot; '+
+      '<a target="_blank" rel="noopener noreferrer" href="https://www.eia.gov/electricity/data/browser/#/plant/'+p.code+'">EIA record</a> &middot; '+
+      '<a target="_blank" rel="noopener noreferrer" href="https://haas.berkeley.edu/wp-content/uploads/archive/WP356.pdf">paper</a> &middot; '+
+      '<a target="_blank" rel="noopener noreferrer" href="https://github.com/nidzae/pjm-datacenter-solar#readme">sources</a>'+
+    '</div></div>';
   m.bindPopup(html,{maxWidth:360});
   m.on('click',function(){showDev(p);});
   markers.push({m:m, mw:p.mw, hl:p.hl10, code:p.code, ba:p.ba});
