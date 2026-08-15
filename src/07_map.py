@@ -140,11 +140,11 @@ roughly <b>{solar_mult:.0f}&times; its size in solar panels</b> (panels average 
 plus overbuild for storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~{solar_mult:.0f}&nbsp;GW of solar.</p>
 <dl>
   <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
-  <dt>Gas plant CF (actual)</dt><dd>The <b>gas plant's</b> real 2024 utilization = EIA-923 net
+  <dt>Gas plant capacity factor (actual)</dt><dd>The <b>gas plant's</b> real 2024 utilization = EIA-923 net
       generation ÷ (nameplate × 8760). Low = an <b>underutilized</b> plant (the premise of this
       screen). This is NOT the solar number and is not from a model. (A few industrial/CHP sites
       read &gt;100% where EIA-860 under-reports their nameplate.)</dd>
-  <dt>Solar CF (modeled)</dt><dd>A <b>different</b> quantity: the modeled output of a hypothetical
+  <dt>Solar capacity factor (modeled)</dt><dd>A <b>different</b> quantity: the modeled output of a hypothetical
       fixed-tilt <b>solar array</b> at this location ÷ its max, from PVWatts/NSRDB (US range
       {cf_lo:.2f}–{cf_hi:.2f}, sunnier Southwest highest). This is what sizes the panels
       (<code>R = 1.3·(1−g)/CF</code>); higher = less solar needed. Verify at pvwatts.nrel.gov.</dd>
@@ -152,7 +152,7 @@ plus overbuild for storage losses and cloudy stretches), so a 1&nbsp;GW load can
       = the solar the land could fit. But a fixed <b>150-acre parcel is reserved for the data center
       building</b>, so <i>usable for solar</i> = (land − 150 ac) × power density. On small urban sites
       this deduction can matter; on normal sites the solar dwarfs it.</dd>
-  <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / CF × nameplate. The panels required so annual
+  <dt>Solar needed</dt><dd>= {C.OVERBUILD} × (1 − g) / capacity&nbsp;factor × nameplate. The panels required so annual
       solar energy covers the load (minus the gas share). ~6× nameplate at these capacity factors.</dd>
   <dt>Hostable DC load (solar-limited)</dt><dd>The data-center size the usable solar land can actually
       power = min(nameplate, usable&nbsp;solar ÷ {C.OVERBUILD}(1−g)/CF). Full nameplate for green plants;
@@ -165,7 +165,7 @@ plus overbuild for storage losses and cloudy stretches), so a 1&nbsp;GW load can
 </dl>
 
 <h3>The test (per plant, per gas cap)</h3>
-<p class="mut">solar needed = {C.OVERBUILD} × (1 − g) / CF × nameplate&nbsp;&nbsp;·&nbsp;&nbsp;
+<p class="mut">solar needed = {C.OVERBUILD} × (1 − g) / capacity&nbsp;factor × nameplate&nbsp;&nbsp;·&nbsp;&nbsp;
 land needed = solar ÷ {pd_mw:.0f} MW/mi² (+ {C.DC_LAND_ACRES:.0f}-acre data-center parcel).
 Qualifies when developable land ≥ land needed.</p>
 
@@ -188,7 +188,7 @@ data centers that the other sites can still host, total <b>solar-limited hostabl
 </ul>
 
 <h3>Data</h3>
-<p class="mut">Plants: EIA-860 (2024). Gas generation / actual CF: EIA-923 (2024). Solar: NREL
+<p class="mut">Plants: EIA-860 (2024). Gas generation / actual capacity factor: EIA-923 (2024). Solar: NREL
 NSRDB / PVWatts. Land cover: NLCD 2021. Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted
 from Energy Institute at Haas WP&nbsp;356 (Chojkiewicz et&nbsp;al., 2026).</p>
 </div>"""
@@ -357,9 +357,9 @@ PLANTS.forEach(function(p){
   var m = L.featureGroup(layers).addTo(map);
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
-    'Gas plant CF (2024 actual): <b>'+(p.gcf===null?'n/a':(p.gcf<0?'~0%':(p.gcf>1?'&gt;100%':(p.gcf*100).toFixed(0)+'%')))+'</b> '+
+    'Gas plant capacity factor (2024 actual): <b>'+(p.gcf===null?'n/a':(p.gcf<0?'~0%':(p.gcf>1?'&gt;100%':(p.gcf*100).toFixed(0)+'%')))+'</b> '+
     '<span style="color:#777">(how hard the gas units ran)</span><br>'+
-    'Solar CF (modeled, PVWatts): '+p.cf.toFixed(3)+' <span style="color:#777">(solar resource, sizes the panels)</span><br>'+
+    'Solar capacity factor (modeled, PVWatts): '+p.cf.toFixed(3)+' <span style="color:#777">(solar resource, sizes the panels)</span><br>'+
     'Developable land: '+p.darea.toLocaleString()+' mi&sup2; &nbsp;(fits <b>'+p.dmw.toLocaleString()+'</b> MW of solar)<br>'+
     'Usable for solar after 150-ac DC parcel: <b>'+p.umw.toLocaleString()+'</b> MW<br>'+
     'Solar <u>needed</u> (full load):&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
@@ -483,7 +483,7 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
              f"{wide.state.nunique()} states and {wide.ba.nunique()} balancing authorities.\n")
     L.append(f"Parameters: overbuild={C.OVERBUILD}, power density default "
              f"{C.POWER_DENSITY_MW_PER_MI2:.0f} MW/mi² ({C.ACRES_PER_MW:.0f} ac/MW), "
-             f"DC parcel {C.DC_LAND_ACRES:.0f} acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².\n")
+             f"DC parcel {C.DC_LAND_ACRES:.0f} acres, NSRDB TMY capacity factor (PVWatts, AC). Areas in mi².\n")
 
     for forest, ftag in (("excl_forest", "forest EXCLUDED (conservative default)"),
                          ("incl_forest", "forest INCLUDED (less aggressive)")):
@@ -559,9 +559,9 @@ def make_summary(long: pd.DataFrame, wide: pd.DataFrame) -> None:
     L.append("- **Residual gap (PA, IL) is plant size + terrain.** PA/IL fleets are dominated "
              "by large CCGTs whose flat 24/7 load needs more solar than fits within 10 km; "
              "single-axis tracking or a larger buffer would expand the set.")
-    L.append(f"- CF here is {wide.cf_ac.min():.2f}–{wide.cf_ac.max():.2f} (mean {wide.cf_ac.mean():.2f}), "
+    L.append(f"- Capacity factor here is {wide.cf_ac.min():.2f}–{wide.cf_ac.max():.2f} (mean {wide.cf_ac.mean():.2f}), "
              "the PVWatts capacity_factor the spec uses in R directly (Spec §3 anchor ~0.16); NOT "
-             "multiplied by the inverter ratio. For the national run CF is snapped to a 0.25° grid "
+             "multiplied by the inverter ratio. For the national run it is snapped to a 0.25° grid "
              "(per-plant error ≲0.01). On small urban sites the 150-acre DC parcel can bind the "
              "verdict (usable = land − parcel).")
     (C.OUTPUTS / "summary.md").write_text("\n".join(L) + "\n")

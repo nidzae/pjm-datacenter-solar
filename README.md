@@ -70,7 +70,7 @@ headroom     = usable_solar / solar_req               # ≥ 1  ⟺  qualifies (e
 hostable     = min(nameplate, headroom * nameplate)   # data-center load the land can power
 ```
 
-`CF_p` is the PVWatts capacity_factor (AC energy ÷ DC nameplate, ~0.11–0.22, the spec's "AC CF"
+`CF_p` is the PVWatts capacity_factor (AC energy ÷ DC nameplate, ~0.11–0.22, the spec's "AC capacity factor"
 ≈ 0.16) — used in `R` directly, **not** multiplied by the inverter ratio. `power_density` (7 ac/MW)
 is on the same DC/panel basis, so `area × power_density` and `R` are consistent.
 
@@ -94,7 +94,7 @@ is on the same DC/panel basis, so `area × power_density` and `R` are consistent
 | Phase | Script | Output |
 |---|---|---|
 | 1 Plant inventory | `01_extract_plants.py` | `data/interim/pjm_gas_plants.csv` |
-| 3 Solar CF | `03_run_rev_gen.py` | `data/interim/pjm_plants_cf.csv` |
+| 3 Solar capacity factor | `03_run_rev_gen.py` | `data/interim/pjm_plants_cf.csv` |
 | 2 Exclusion masks | `02_build_exclusions.py` | `data/processed/exclusions/plant_*.tif` |
 | 4 Supply curve | `04_run_rev_agg.py` | `data/processed/pjm_supply_curve.csv` |
 | 5 Buffer aggregate | `05_buffer_aggregate.py` | `data/processed/pjm_plants_with_land.csv` |
@@ -116,7 +116,7 @@ needs internet for the base tiles). Keep the `outputs/dev_tiles/` folder next to
 - **Markers** — every US gas plant, drawn as a gauge: **outline ring = full nameplate**, **filled
   core = hostable data-center load** (core area ∝ hostable ÷ nameplate). **Green = full nameplate
   qualifies** (10% gas cap), **orange = only a partial data center fits**;
-  **size ∝ nameplate MW**. Click for a popup (nameplate, AC CF, developable MW/mi², headroom
+  **size ∝ nameplate MW**. Click for a popup (nameplate, capacity factor, developable MW/mi², headroom
   per gas cap).
 - **Click-to-hatch** — clicking a plant draws its 10 km buffer and shades the **developable
   solar land** with a thin diagonal hatch. Rendered at full **30 m fidelity with ~1.6k interior
@@ -125,7 +125,7 @@ needs internet for the base tiles). Keep the `outputs/dev_tiles/` folder next to
   `dev_tiles/plant_<code>.js` on click (via injected `<script>`, so it works from `file://`).
 - **Street / Satellite toggle** (top-right) — flip to Esri World Imagery to see what's actually
   on the shaded land.
-- **Popup** — for each plant: nameplate (= the 24/7 load), AC CF, solar that *fits* vs solar
+- **Popup** — for each plant: nameplate (= the 24/7 load), capacity factor, solar that *fits* vs solar
   *needed*, and the **hostable DC load** (the solar-limited data-center size it can actually
   power — full nameplate for green, partial for orange), plus headroom per gas cap.
 - **Hostable-load range slider** (top-left) — filter to plants that can host a data center in a
@@ -153,10 +153,10 @@ exactly the spec; only the data-plumbing differs, and results are equivalent and
    a single nearest-point meta op over the throttled developer key (1000 req/hr) takes
    ~90 s. Running reV *generation* over the full PJM grid there is an HPC/local-`.h5` job,
    not tractable on this key. We evaluate the **same SAM PVWatts engine** (NREL-hosted,
-   NSRDB TMY, identical fixed-tilt geometry) at each plant → `CF_p` directly. CF is defined
-   AC-consistently with `R`: `AC_CF = PVWatts_CF × dc_ac_ratio`. PJM values land 0.17–0.21
-   (mean 0.19), slightly above the spec's 0.16 anchor because of the 1.3 ILR — mildly
-   optimistic; see caveats.
+   NSRDB TMY, identical fixed-tilt geometry) at each plant → the per-site capacity factor
+   directly. `CF_p` is the PVWatts `capacity_factor` (AC energy ÷ DC nameplate), used in `R`
+   as the spec intends — **not** multiplied by the inverter ratio. US values land 0.11–0.22
+   (mean ~0.17; PJM 0.15, matching the spec's 0.15–0.18 anchor).
 
 3. **Developable land via per-plant raster exclusion, not a PJM-wide reVX `.h5`.** Buffers
    are only 10 km, so exclusion data is fetched **within ~12 km of each plant** at NLCD's
@@ -172,7 +172,7 @@ exactly the spec; only the data-plumbing differs, and results are equivalent and
 | Layer | Source | Vintage |
 |---|---|---|
 | Plants | EIA-860 Plant + Generator (Operable) | **2024** |
-| Gas generation / actual CF | EIA-923 Page 1 net generation | **2024** |
+| Gas generation / actual capacity factor | EIA-923 Page 1 net generation | **2024** |
 | Solar resource | NREL NSRDB via SAM PVWatts (`developer.nlr.gov`) | TMY (GOES v4.0.0) |
 | Land cover | NLCD (MRLC WCS, `NLCD_2021_Land_Cover_L48`) | **2021** |
 | Slope | USGS 3DEP Elevation ImageServer (30 m) → gradient | current |
@@ -196,16 +196,16 @@ PAD-US GAP status 1/2/3. Developable = barren, shrub, grassland, pasture, cultiv
   (~160 GW whole-plant, ~268 GW with partials at 10%) are an **upper bound**, not a strictly
   additive potential. De-duplicating overlapping buffers would lower the aggregate.
 - **Capacity factor** is the PVWatts `capacity_factor` (0.11–0.22, mean ~0.17, Southwest highest;
-  the spec's ~0.16 "AC CF" used in `R` directly, **not** ×ILR). It is snapped to a 0.25° (~17 mi)
+  the spec's ~0.16 "AC capacity factor" used in `R` directly, **not** ×ILR). It is snapped to a 0.25° (~17 mi)
   grid for the national run (per-plant error ≲0.01, negligible). Fixed-tilt is assumed; single-axis
-  tracking would raise CF, lower `R`, and expand the qualifying set.
+  tracking would raise capacity factor, lower `R`, and expand the qualifying set.
 - **Presence ≠ headroom** for fiber and water (Phase 8 flags never gate qualification).
 - **Transmission line capacity is out of scope** — nameplate is the interconnection proxy,
   consistent with the paper. Enabling mechanism = **surplus interconnection service (SIS)**;
   PJM has an SIS process (FERC Order 845), rules moving in 2024–2026. Verify live.
 - **No storage, dispatch, LCOE, or emissions.** This answers only "is the land physically
   there."
-- **Fixed-tilt assumed** to match the paper. Single-axis tracking would raise CF, lower `R`,
+- **Fixed-tilt assumed** to match the paper. Single-axis tracking would raise capacity factor, lower `R`,
   and expand the qualifying set — offered as a future variant.
 - **Exclusion rules are conservative toggles.** Excluding all forest is aggressive; it is a
   switch and reported as sensitivity.

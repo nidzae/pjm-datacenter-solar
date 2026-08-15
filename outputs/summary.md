@@ -2,7 +2,7 @@
 
 Fleet: **1277 operating US (lower-48) gas plants**, **475.5 GW** total nameplate, across 48 states and 50 balancing authorities.
 
-Parameters: overbuild=1.3, power density default 91 MW/mi² (7 ac/MW), DC parcel 150 acres, NSRDB TMY CF (PVWatts, AC). Areas in mi².
+Parameters: overbuild=1.3, power density default 91 MW/mi² (7 ac/MW), DC parcel 150 acres, NSRDB TMY capacity factor (PVWatts, AC). Areas in mi².
 
 ## Qualifying plants & hostable data-center load (GW) — forest EXCLUDED (conservative default)
 
@@ -106,4 +106,4 @@ A plant that can't host a *full-nameplate* data center can usually still host a 
 - **Order-of-magnitude match, forest toggle is the key lever.** Across the 5 paper states the forest-included screen (24 GW) aligns with paper Fig. 4 (61 GW) better than the forest-excluded default (14 GW). Excluding all forest is the aggressive end of the toggle (Spec §12).
 - **Fig. 4 is not the same quantity as qualifying gas nameplate.** Paper Fig. 4 gives IL = 16 GW, which *exceeds* IL's entire operating gas fleet here (13.7 GW). So Fig. 4 measures a solar/load-potential, not qualifying nameplate; our lower, same-order-of-magnitude totals are the expected outcome, not a bug.
 - **Residual gap (PA, IL) is plant size + terrain.** PA/IL fleets are dominated by large CCGTs whose flat 24/7 load needs more solar than fits within 10 km; single-axis tracking or a larger buffer would expand the set.
-- CF here is 0.11–0.22 (mean 0.17), the PVWatts capacity_factor the spec uses in R directly (Spec §3 anchor ~0.16); NOT multiplied by the inverter ratio. For the national run CF is snapped to a 0.25° grid (per-plant error ≲0.01). On small urban sites the 150-acre DC parcel can bind the verdict (usable = land − parcel).
+- Capacity factor here is 0.11–0.22 (mean 0.17), the PVWatts capacity_factor the spec uses in R directly (Spec §3 anchor ~0.16); NOT multiplied by the inverter ratio. For the national run it is snapped to a 0.25° grid (per-plant error ≲0.01). On small urban sites the 150-acre DC parcel can bind the verdict (usable = land − parcel).
