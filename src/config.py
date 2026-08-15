@@ -27,6 +27,10 @@ for _p in (DATA_RAW, DATA_INTERIM, DATA_PROCESSED, CONFIG_DIR, OUTPUTS):
 # --------------------------------------------------------------------------------------
 EIA860_VINTAGE = 2024          # latest annual EIA-860 vintage available at build time
 EIA860_ZIP_URL = "https://www.eia.gov/electricity/data/eia860/xls/eia8602024.zip"
+# EIA-923 net generation -> each plant's ACTUAL gas capacity factor ("underutilized" metric).
+EIA923_VINTAGE = 2024
+EIA923_ZIP_URL = "https://www.eia.gov/electricity/data/eia923/archive/xls/f923_2024.zip"
+HOURS_PER_YEAR = 8760          # standard capacity-factor convention
 
 # --------------------------------------------------------------------------------------
 # Region filter (Spec section 4)

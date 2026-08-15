@@ -56,6 +56,7 @@
   },
   "data_vintages": {
     "eia860": 2024,
+    "eia923": 2024,
     "nlcd": 2021,
     "nsrdb": "GOES v4.0.0 TMY",
     "padus": "4.0"

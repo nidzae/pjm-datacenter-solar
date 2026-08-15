@@ -172,6 +172,7 @@ exactly the spec; only the data-plumbing differs, and results are equivalent and
 | Layer | Source | Vintage |
 |---|---|---|
 | Plants | EIA-860 Plant + Generator (Operable) | **2024** |
+| Gas generation / actual CF | EIA-923 Page 1 net generation | **2024** |
 | Solar resource | NREL NSRDB via SAM PVWatts (`developer.nlr.gov`) | TMY (GOES v4.0.0) |
 | Land cover | NLCD (MRLC WCS, `NLCD_2021_Land_Cover_L48`) | **2021** |
 | Slope | USGS 3DEP Elevation ImageServer (30 m) → gradient | current |

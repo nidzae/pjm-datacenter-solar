@@ -76,6 +76,10 @@ def main() -> None:
     )
     wide.columns = [f"{a}_g{int(b*100)}" for a, b in wide.columns]
     wide = wide.reset_index()
+    # Actual gas capacity factor from EIA-923 (context; merged post-pivot so NaN rows survive).
+    gas_cols = [c for c in ("gas_cf", "net_gen_MWh_2024") if c in p.columns]
+    if gas_cols:
+        wide = wide.merge(p[["plant_code", *gas_cols]], on="plant_code", how="left")
     qual_cols = [c for c in wide.columns if c.startswith("qualifies_")]
     wide["qualifying_any"] = wide[qual_cols].any(axis=1)
     # Solar-limited hostable data-center load per gas cap = min(nameplate, headroom * nameplate).

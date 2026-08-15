@@ -23,6 +23,8 @@ import config as C  # noqa: E402
 EIA_DIR = C.DATA_RAW / "eia860_2024"
 PLANT_XLSX = EIA_DIR / "2___Plant_Y2024.xlsx"
 GEN_XLSX = EIA_DIR / "3_1_Generator_Y2024.xlsx"
+EIA923_DIR = C.DATA_RAW / "eia923_2024"
+EIA923_XLSX = EIA923_DIR / "EIA923_Schedules_2_3_4_5_M_12_2024_Final.xlsx"
 
 # §11 validation anchors: named PJM plants expected in the fleet (paper Table S3).
 EXPECTED_PLANTS = [
@@ -44,6 +46,38 @@ def _ensure_inputs() -> None:
         zip_path.write_bytes(r.content)
     with zipfile.ZipFile(zip_path) as z:
         z.extractall(EIA_DIR)
+
+
+def _ensure_eia923() -> None:
+    if EIA923_XLSX.exists():
+        return
+    zip_path = C.DATA_RAW / "eia923_2024.zip"
+    if not zip_path.exists():
+        import requests
+        print(f"Downloading EIA-923 {C.EIA923_VINTAGE} ...")
+        r = requests.get(C.EIA923_ZIP_URL, timeout=300)
+        r.raise_for_status()
+        zip_path.write_bytes(r.content)
+    with zipfile.ZipFile(zip_path) as z:
+        z.extractall(EIA923_DIR)
+
+
+def load_gas_generation() -> pd.Series:
+    """Per-plant 2024 natural-gas net generation (MWh) from EIA-923 Page 1, restricted to the
+    same prime movers as our gas nameplate (GT/CT/CA/CS/CC) so CF = gen / (nameplate*8760) is
+    apples-to-apples. Indexed by Plant Code."""
+    _ensure_eia923()
+    g = pd.read_excel(EIA923_XLSX, sheet_name="Page 1 Generation and Fuel Data", skiprows=5)
+    g.columns = [str(c).replace("\n", " ").strip() for c in g.columns]
+    g["Plant Id"] = pd.to_numeric(g["Plant Id"], errors="coerce")
+    g["Reported Fuel Type Code"] = g["Reported Fuel Type Code"].astype(str).str.strip().str.upper()
+    g["Reported Prime Mover"] = g["Reported Prime Mover"].astype(str).str.strip().str.upper()
+    g["Net Generation (Megawatthours)"] = pd.to_numeric(
+        g["Net Generation (Megawatthours)"], errors="coerce")
+    m = (g["Reported Fuel Type Code"] == C.ENERGY_SOURCE_GAS) & \
+        (g["Reported Prime Mover"].isin(C.PRIME_MOVERS_ALL))
+    return (g.loc[m].groupby("Plant Id")["Net Generation (Megawatthours)"].sum()
+            .rename("net_gen_MWh"))
 
 
 def load_generators() -> pd.DataFrame:
@@ -130,6 +164,11 @@ def main() -> None:
         .reset_index(drop=True)
     )
 
+    # Actual gas capacity factor from EIA-923 net generation (context, not used in the screen).
+    netgen = load_gas_generation()
+    out["net_gen_MWh_2024"] = out["plant_code"].map(netgen)
+    out["gas_cf"] = out["net_gen_MWh_2024"] / (out["nameplate_MW_total"] * C.HOURS_PER_YEAR)
+
     out_path = C.DATA_INTERIM / "pjm_gas_plants.csv"
     out.to_csv(out_path, index=False)
 
@@ -140,6 +179,10 @@ def main() -> None:
     print(f"{region} operating gas plants: {len(out)}   total nameplate: {total_gw:,.1f} GW")
     print(f"  peaker (GT):   {out['nameplate_MW_peaker'].sum()/1000:,.1f} GW")
     print(f"  ccgt (CT/CA/CS/CC): {out['nameplate_MW_ccgt'].sum()/1000:,.1f} GW")
+    gcf = out["gas_cf"]
+    print(f"  actual gas CF (EIA-923 {C.EIA923_VINTAGE}): median {gcf.median():.2f}, mean "
+          f"{gcf.mean():.2f}, {gcf.isna().sum()} missing, {(gcf>1.0).sum()} >100% (industrial/CHP "
+          "nameplate under-report)")
     print("\nBy state (nameplate GW):")
     by_state = (out.groupby("state")["nameplate_MW_total"].sum() / 1000).sort_values(ascending=False)
     print(by_state.round(1).to_string())

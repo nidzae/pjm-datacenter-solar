@@ -48,6 +48,7 @@ def make_map(wide: pd.DataFrame) -> None:
             "code": code, "name": r.name, "state": r.state, "ba": str(r.ba),
             "lat": round(float(r.lat), 5), "lon": round(float(r.lon), 5),
             "mw": round(float(r.nameplate_MW), 0), "cf": round(float(r.cf_ac), 3),
+            "gcf": (round(float(r.gas_cf), 3) if ("gas_cf" in wide.columns and pd.notna(r.gas_cf)) else None),
             "dmw": round(float(r.developable_MW), 0),
             "umw": round(float(r.usable_solar_MW), 0),
             "darea": round(float(r.developable_area_mi2), 1),
@@ -139,8 +140,14 @@ roughly <b>{solar_mult:.0f}&times; its size in solar panels</b> (panels average 
 plus overbuild for storage losses and cloudy stretches), so a 1&nbsp;GW load can need ~{solar_mult:.0f}&nbsp;GW of solar.</p>
 <dl>
   <dt>Nameplate (MW)</dt><dd>Plant's max rated output; here it's the size of the 24/7 data-center load.</dd>
-  <dt>AC capacity factor</dt><dd>Solar output ÷ its theoretical max, from PVWatts/NSRDB. US range here
-      {cf_lo:.2f}–{cf_hi:.2f} (sunnier Southwest highest). Higher = less solar needed.</dd>
+  <dt>Gas plant CF (actual)</dt><dd>The <b>gas plant's</b> real 2024 utilization = EIA-923 net
+      generation ÷ (nameplate × 8760). Low = an <b>underutilized</b> plant (the premise of this
+      screen). This is NOT the solar number and is not from a model. (A few industrial/CHP sites
+      read &gt;100% where EIA-860 under-reports their nameplate.)</dd>
+  <dt>Solar CF (modeled)</dt><dd>A <b>different</b> quantity: the modeled output of a hypothetical
+      fixed-tilt <b>solar array</b> at this location ÷ its max, from PVWatts/NSRDB (US range
+      {cf_lo:.2f}–{cf_hi:.2f}, sunnier Southwest highest). This is what sizes the panels
+      (<code>R = 1.3·(1−g)/CF</code>); higher = less solar needed. Verify at pvwatts.nrel.gov.</dd>
   <dt>Developable land / usable for solar</dt><dd>Developable land × power density (~{pd_mw:.0f} MW/mi²)
       = the solar the land could fit. But a fixed <b>150-acre parcel is reserved for the data center
       building</b>, so <i>usable for solar</i> = (land − 150 ac) × power density. On small urban sites
@@ -181,9 +188,9 @@ data centers that the other sites can still host, total <b>solar-limited hostabl
 </ul>
 
 <h3>Data</h3>
-<p class="mut">Plants: EIA-860 (2024). Solar: NREL NSRDB / PVWatts. Land cover: NLCD 2021.
-Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted from Energy Institute at Haas WP&nbsp;356
-(Chojkiewicz et&nbsp;al., 2026).</p>
+<p class="mut">Plants: EIA-860 (2024). Gas generation / actual CF: EIA-923 (2024). Solar: NREL
+NSRDB / PVWatts. Land cover: NLCD 2021. Slope: USGS 3DEP. Protected areas: PAD-US 4.0. Adapted
+from Energy Institute at Haas WP&nbsp;356 (Chojkiewicz et&nbsp;al., 2026).</p>
 </div>"""
 
 
@@ -350,7 +357,9 @@ PLANTS.forEach(function(p){
   var m = L.featureGroup(layers).addTo(map);
   var html = '<div class="info"><b>'+p.name+'</b> ('+p.state+')<br>'+
     'Nameplate = 24/7 load: <b>'+p.mw.toLocaleString()+'</b> MW<br>'+
-    'AC capacity factor: '+p.cf.toFixed(3)+'<br>'+
+    'Gas plant CF (2024 actual): <b>'+(p.gcf===null?'n/a':(p.gcf<0?'~0%':(p.gcf>1?'&gt;100%':(p.gcf*100).toFixed(0)+'%')))+'</b> '+
+    '<span style="color:#777">(how hard the gas units ran)</span><br>'+
+    'Solar CF (modeled, PVWatts): '+p.cf.toFixed(3)+' <span style="color:#777">(solar resource, sizes the panels)</span><br>'+
     'Developable land: '+p.darea.toLocaleString()+' mi&sup2; &nbsp;(fits <b>'+p.dmw.toLocaleString()+'</b> MW of solar)<br>'+
     'Usable for solar after 150-ac DC parcel: <b>'+p.umw.toLocaleString()+'</b> MW<br>'+
     'Solar <u>needed</u> (full load):&nbsp; g5% '+p.sr5.toLocaleString()+' &middot; g10% <b>'+p.sr10.toLocaleString()+'</b> &middot; g20% '+p.sr20.toLocaleString()+' MW<br>'+
