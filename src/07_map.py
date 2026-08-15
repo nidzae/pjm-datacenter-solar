@@ -1,5 +1,5 @@
 """
-Phase 7 -- Interactive map + PJM-wide summary.
+Phase 7 -- Interactive map + nationwide (US) summary.
 
 Reads outputs/pjm_sites.csv and pjm_sites_sensitivity.csv and produces:
   * outputs/pjm_map.html  -- custom Leaflet map: gas plants, marker size ∝ nameplate,

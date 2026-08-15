@@ -125,9 +125,14 @@ needs internet for the base tiles). Keep the `outputs/dev_tiles/` folder next to
   `dev_tiles/plant_<code>.js` on click (via injected `<script>`, so it works from `file://`).
 - **Street / Satellite toggle** (top-right) — flip to Esri World Imagery to see what's actually
   on the shaded land.
-- **Popup** — for each plant: nameplate (= the 24/7 load), capacity factor, solar that *fits* vs solar
-  *needed*, and the **hostable DC load** (the solar-limited data-center size it can actually
-  power — full nameplate for green, partial for orange), plus headroom per gas cap.
+- **Popup** — for each plant: nameplate (= the 24/7 load); the **gas plant capacity factor**
+  (actual 2024 utilization from EIA-923 — the "underutilized" metric) vs the **solar capacity
+  factor** (modeled, from PVWatts — what sizes the panels); solar that *fits* vs solar *needed*;
+  the **hostable DC load** (full nameplate for green, partial for orange); headroom per gas cap;
+  and links to the **site** (Google Maps), the plant's **EIA record**, the **paper**, and the
+  data **sources**.
+- **Region (ISO/RTO) filter** (top-left) — focus on one grid operator (PJM, MISO, CAISO, ERCOT…),
+  composable with the hostable-load slider.
 - **Hostable-load range slider** (top-left) — filter to plants that can host a data center in a
   given MW band, using the **solar-limited hostable load** (partial capacity), not full
   nameplate; *reset* restores the full range.
@@ -193,7 +198,7 @@ PAD-US GAP status 1/2/3. Developable = barren, shrub, grassland, pasture, cultiv
   its *own* 10 km buffer, independently. 67% of US plants have a neighbor within 20 km, so their
   buffers overlap and the same acreage may count toward two or more plants. **Per-plant verdicts
   and hostable loads (the map popups) are unaffected and valid**, but the national roll-ups
-  (~160 GW whole-plant, ~268 GW with partials at 10%) are an **upper bound**, not a strictly
+  (~132 GW whole-plant, ~240 GW with partials at 10%) are an **upper bound**, not a strictly
   additive potential. De-duplicating overlapping buffers would lower the aggregate.
 - **Capacity factor** is the PVWatts `capacity_factor` (0.11–0.22, mean ~0.17, Southwest highest;
   the spec's ~0.16 "AC capacity factor" used in `R` directly, **not** ×ILR). It is snapped to a 0.25° (~17 mi)

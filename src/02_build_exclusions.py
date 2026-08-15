@@ -1,7 +1,7 @@
 """
 Phase 2 -- Developable-land exclusion mask, per plant.
 
-Spec-literal intent: one PJM-wide 30 m exclusion HDF5 for reVX. Because buffers are only
+Spec-literal intent: one region-wide 30 m exclusion HDF5 for reVX. Because buffers are only
 10 km, we instead build a per-plant developable mask over a 24 km box around each plant
 (covers the 10 km buffer + margin) at NLCD's native 30 m / EPSG:5070 grid. Identical
 exclusion logic, orders of magnitude less data, and no reVX HSDS-aligned .h5 needed.
